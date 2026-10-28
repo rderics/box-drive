@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pārbaude — Box-Driver</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f2ee;color:#12161f}
+  main{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+  h1{font-size:26px;margin:0 0 6px} p{margin:6px 0}
+  .row{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #dcd8d0;border-radius:12px;padding:12px 14px;margin:8px 0}
+  .ic{font-size:20px;width:26px} .ok .ic{color:#1f9d63} .bad .ic{color:#d9432e} .wait .ic{color:#999}
+  small{color:#6a7179;word-break:break-word} button{font:inherit;padding:9px 14px;border-radius:10px;border:1px solid #b3282d;background:#b3282d;color:#fff;cursor:pointer}
+  pre{background:#12161f;color:#e8ecf2;padding:12px;border-radius:10px;white-space:pre-wrap;word-break:break-word;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Savienojuma pārbaude</h1>
+  <p>Atver šo lapu tajā datorā, kur nestrādā, un nosūti ekrānuzņēmumu vai nokopēto atskaiti.</p>
+  <div id="list"></div>
+  <p><button id="copy" type="button">Nokopēt atskaiti</button></p>
+  <pre id="report">Notiek pārbaude…</pre>
+</main>
+<script>
+(function () {
+  var URL = 'https://qjakepgeqioqrmsufaty.supabase.co', KEY = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS', $ = function (id) { return document.getElementById(id); }, lines = [];
+  var checks = [];
+  function add(name, fn) { checks.push({ name: name, fn: fn }); }
+  function row(c, state, detail) { var el = c.el || (c.el = document.createElement('div')); el.className = 'row ' + state; el.innerHTML = '<span class="ic">' + (state === 'ok' ? '✓' : state === 'bad' ? '✗' : '…') + '</span><div><b>' + c.name + '</b><br><small>' + (detail || '') + '</small></div>'; $('list').appendChild(el); }
+  function t(p, ms) { return Promise.race([p, new Promise(function (_, rj) { setTimeout(function () { rj(new Error('taimauts ' + ms / 1000 + ' s')); }, ms); })]); }
+
+  add('Pārlūks un krātuve (localStorage)', function () { try { localStorage.setItem('_t', '1'); var v = localStorage.getItem('_t') === '1'; localStorage.removeItem('_t'); if (!v) throw new Error('nevar lasīt'); return 'darbojas · ' + navigator.userAgent.slice(0, 90); } catch (e) { throw new Error('localStorage bloķēts (inkognito vai privātuma iestatījumi?) — pieteikšanās nevar saglabāties'); } });
+  add('Drošs savienojums (https)', function () { if (location.protocol !== 'https:' && location.hostname !== 'localhost') throw new Error('lapa atvērta ar ' + location.protocol + ' — jāatver ar https'); return location.origin; });
+  add('Datora pulkstenis', function () { return fetch(URL + '/auth/v1/health', { headers: { apikey: KEY } }).then(function (r) { var d = r.headers.get('date'); if (!d) return 'servera laiks nav redzams'; var diff = Math.round((Date.now() - Date.parse(d)) / 1000); if (Math.abs(diff) > 300) throw new Error('pulkstenis atšķiras par ' + diff + ' s — pieteikšanās var neizdoties; ieslēdz automātisko laiku'); return 'starpība ' + diff + ' s (ok)'; }); });
+  add('Autorizācija (Supabase Auth)', function () { return fetch(URL + '/auth/v1/health', { headers: { apikey: KEY } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return 'HTTP ' + r.status; }); });
+  add('Datubāze (Supabase REST)', function () { return fetch(URL + '/rest/v1/cars?select=id&limit=1', { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return 'HTTP ' + r.status; }); });
+  add('Reģistrācijas funkcija', function () { return fetch(URL + '/functions/v1/account', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: '{}' }).then(function (r) { return r.json().then(function (j) { if (r.status !== 400) throw new Error('negaidīta atbilde ' + r.status); return 'atbild (' + j.error + ')'; }); }); });
+  add('Lapas faili (jaunākā versija)', function () {
+    var cur = (document.querySelector('script[src*="auth.js"]') || {}).src; return fetch('login.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (h) { var m = h.match(/auth\.js\?v=([0-9a-z]+)/); return 'serveris: ' + (m ? m[1] : '?') + (m && m[1] < '20261028t' ? ' (vecāks nekā gaidīts — nospied Ctrl+Shift+R)' : ' (ok)'); });
+  });
+  add('Pieteikšanās šajā pārlūkā', function () { var s = null; try { s = JSON.parse(localStorage.getItem('octa_session') || 'null'); } catch (e) {} return s ? 'pieteicies kā ' + s.email : 'nav pieteicies (jāatver login lapa)'; });
+
+  var chain = Promise.resolve();
+  checks.forEach(function (c) {
+    chain = chain.then(function () { row(c, 'wait', 'pārbauda…'); return t(Promise.resolve().then(c.fn), 10000).then(function (d) { row(c, 'ok', d); lines.push('OK   ' + c.name + ' — ' + d); }, function (e) { row(c, 'bad', e.message); lines.push('FAIL ' + c.name + ' — ' + e.message); }); });
+  });
+  chain.then(function () { $('report').textContent = new Date().toISOString() + '\n' + location.href + '\n' + lines.join('\n'); });
+  $('copy').onclick = function () { try { navigator.clipboard.writeText($('report').textContent); $('copy').textContent = 'Nokopēts'; } catch (e) { $('report').focus(); } };
+})();
+</script>
+</body>
+</html>
