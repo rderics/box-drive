@@ -240,14 +240,16 @@
       phone: { kpi: Math.min(A.phonePerHour / 2, k.phonePerHour), score: 100 * clamp(1 - Math.min(A.phonePerHour / 2, k.phonePerHour) / P.zero.phonePerHour, 0, 1) },
       nightfatigue: { kpi: Math.min(A.nightShare, k.nightShare), score: clamp(100 - P.nightCoef * Math.min(A.nightShare, k.nightShare), 0, 100) },
     };
-    const now = premiumPreview(res.total), out = [];
+    const out = [];
     for (const key of Object.keys(target)) {
       const gain = W[key] * (target[key].score - s[key]) / 100;
       if (gain < 0.3) continue;                                   // already good: nothing to recommend
-      const total2 = Math.min(100, res.total + gain), pr = premiumPreview(total2);
-      out.push({ key, scoreNow: r1(s[key]), scoreTarget: r1(target[key].score), kpiTarget: r1(target[key].kpi * 100) / 100, gainPoints: r1(gain), totalAfter: r1(total2), eurAfter: pr.eur, savingEur: now.eur - pr.eur });
+      out.push({ key, scoreNow: r1(s[key]), scoreTarget: r1(target[key].score), kpiTarget: r1(target[key].kpi * 100) / 100, gainPoints: r1(gain) });
     }
     out.sort((a, b) => b.gainPoints - a.gainPoints);
+    // savings are cumulative in that order (the biggest change first), so they add up to the total possible saving
+    let tot = res.total, eur = premiumPreview(tot).eur;
+    for (const o of out) { tot = Math.min(100, tot + o.gainPoints); const e2 = premiumPreview(tot).eur; o.totalAfter = r1(tot); o.eurAfter = e2; o.savingEur = eur - e2; eur = e2; }
     return out;
   }
 
