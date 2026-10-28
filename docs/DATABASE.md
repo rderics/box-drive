@@ -25,7 +25,7 @@ Schema: `supabase/migrations/20261028000000_init_driver_score_schema.sql` (alrea
 5 cars, 4 drivers, 6 driver↔car links, 117 trips, 1,034 events, 117 traces — the same synthetic data as `data.js` (`tools/export-seed.js` rebuilds the payloads).
 
 ## Next
-1. App reads demo data from the database (fallback: `data.js`).
+1. ~~App reads demo data from the database~~ ✅ done: `db.js` loads it with the public key after the first render from `data.js` (offline fallback); `node tools/test-db.js` checks the database copy scores identically to `data.js`.
 2. Ingest endpoint (Edge Function) for real trips from the collector / phone, with auth.
 3. Scoring job writing `score_snapshots`; insurer API returning **car** scores only.
 4. Retention job for `trip_traces`; consent checks before car-score sharing.

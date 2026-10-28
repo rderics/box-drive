@@ -17,7 +17,8 @@ node tools/gen.js     # regenerate data.js (synthetic drivers, cars, trips, Asse
 | `engine.js` | Scoring engine (browser + Node): samples → events → KPIs → score ± uncertainty → advice → illustrative premium. **All thresholds/weights are our assumptions** in `P` at the top. |
 | `phone.js`, `phone.css` | The in-app mock-up (Mani auto · Braukšana · CSNg · Vairāk), car/driver screens, trip route map + timeline, onboarding. |
 | `app.js`, `i18n.js`, `style.css` | Presenter pages (insurer view, hours vs years, Assetto Corsa, how it works), LV/EN, demo panel. |
-| `data.js` | Generated synthetic data (do not edit by hand). |
+| `data.js` | Generated synthetic data (do not edit by hand) — also the offline fallback. |
+| `db.js` | Loads the same demo data from the Supabase database (public key, read-only) and swaps it in; see `docs/DATABASE.md`. |
 | `tools/ac_logger.py` | Records a real Assetto Corsa session to JSON (untested against the live game). |
 | `docs/ARCHITECTURE.md` | Backend + real-app design and the thin slice for the hackathon. |
 

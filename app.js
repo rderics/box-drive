@@ -227,10 +227,22 @@
   }
 
   /* ---------- wiring ---------- */
+  function dbLine() {
+    const lv = lang === 'lv', i = S.dbInfo;
+    if (!i) return `◌ ${lv ? 'Datu avots: ielādē no datubāzes…' : 'Data source: loading from the database…'}`;
+    if (i.source === 'supabase') return `● ${lv ? 'Datu avots' : 'Data source'}: Supabase (EU) · ${i.trips} ${lv ? 'braucieni' : 'trips'} · ${i.events} ${lv ? 'notikumi' : 'events'} · ${i.ms} ms`;
+    return `○ ${lv ? 'Datu avots: data.js (bezsaistē — datubāze nav pieejama)' : 'Data source: data.js (offline — database unavailable)'}`;
+  }
+  /* the app renders instantly from data.js, then swaps in the database copy; on any failure data.js stays */
+  function loadDb() {
+    if (!window.DB) { S.dbInfo = { source: 'data.js' }; return Promise.resolve(); }
+    return DB.load(D).then((info) => { S.dbInfo = info; cache.clear(); render(); }).catch((e) => { S.dbInfo = { source: 'data.js', error: String(e && e.message || e) }; render(); });
+  }
   function appView() {
     const L = Phone.L[lang], ds = allDrivers().filter((d) => !String(d.id).startsWith('imp'));
     const views = [['driver', 'tab_driver'], ['insurer', 'tab_insurer'], ['exp', 'tab_exp'], ['live', 'tab_live'], ['how', 'tab_how']];
     const panel = S.demoOpen ? `<div class="demo-panel card"><div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Demo</h3><button class="chip" data-demo="toggle" aria-label="Close">✕</button></div>
+      <p class="note" style="margin:8px 0 0">${dbLine()}</p>
       <h3 style="margin-top:12px">${L.persona}</h3><div class="pills">${ds.map((x) => `<button class="chip ${x.id === S.driver ? 'on' : ''}" data-persona="${x.id}">${esc(x.name)}</button>`).join('')}</div>
       <div class="pills"><button class="chip" data-demo="onboard">${L.onboard_btn}</button><button class="chip" data-demo="lang">${lang === 'lv' ? 'EN' : 'LV'}</button></div>
       <h3>${L.views_t}</h3><div class="pills">${views.map(([k, lk]) => `<button class="chip" data-tab="${k}">${t(lk)}</button>`).join('')}</div>
@@ -280,7 +292,8 @@
   });
   $('#lang').addEventListener('click', () => { lang = lang === 'en' ? 'lv' : 'en'; try { localStorage.setItem('lang', lang); } catch (e) {} render(); });
   window.App = { E, D, carsOf, carRes, allDrivers, resOf, weekly, adviceText, ring, trendSvg, speedChart, rawToTrip, t, fmt, col, P, analyze: E.analyzeTrip,
-    lang: () => lang, state: () => S, invalidate: () => cache.clear(),
+    loadDb, lang: () => lang, state: () => S, invalidate: () => cache.clear(),
     setLang: (l) => { lang = l; try { localStorage.setItem('lang', lang); } catch (e) {} render(); } };
   render();
+  loadDb();
 })();
