@@ -69,3 +69,9 @@ Status 28.10 night: Jev works; Gemini returns HTTP 402 "prepayment credits are d
 - No AI-agent processing for now (`AI_ON=false` in `app.js`, advice call off in `account.html`); the `recommend` / Jev / Gemini pipeline stays deployed but unused.
 - Demo user: **Ali Aslanov** (`tools/create-ali.js`; email `ali.aslanov@boxdrive.demo`, demo password in `upload.py`/the script — made-up details, throw-away account), car **Mercedes-Benz 190E Evo2** (plate AL1990, 2.5 16V, 173 kW, 1991, illustrative odometer/VIN/registration), 41 sample rides.
 - `python live.py ac --zones "0-1500:60,1500-:90" --upload` uploads as Ali (override with `--email/--password` or env `OCTA_EMAIL/OCTA_PASSWORD`); the ride is attached to the car with plate AL1990.
+
+## Admin (28.10 night)
+- `drivers.admin` smallint (0/1). **Users cannot set it:** insert/update on `drivers` is granted to `authenticated` only for the other columns; verified — a normal user's `PATCH admin=1` returns `permission denied` (42501).
+- After login `login.html` asks the `admin` Edge Function (`action: "me"`): admins go to **`admin.html`** (separate site), everyone else to the app. `admin.html` re-checks, and the function checks `drivers.admin = 1` on **every** call (service role inside the function; the browser never holds a service key).
+- Admin can: list/search all users (name, e-mail, id), see their rides and cars, delete one ride, all rides, a car, or a whole user (needs typing DZĒST). Cannot delete themselves or another admin. Every destructive action is written to `admin_log`.
+- Admin account (made-up details): **Rinalds Derits**, `rinalds.derits@boxdrive.demo`. The password is NOT in the repo (ask Rinalds); it is weak on purpose for the demo, so change it before real use. Make another admin with SQL: `update drivers set admin = 1 where id = '<driver id>'`.
