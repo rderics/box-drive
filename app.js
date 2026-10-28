@@ -233,6 +233,7 @@
     const lv = lang === 'lv', i = S.dbInfo;
     if (!i) return `◌ ${lv ? 'Datu avots: ielādē no datubāzes…' : 'Data source: loading from the database…'}`;
     if (i.source === 'supabase' && i.sample) return `◐ ${lv ? 'Tavi dati no datubāzes (Supabase) — PARAUGA dati, kamēr nav īstu braucienu' : 'Your data from the database (Supabase) — SAMPLE data until there are real rides'} · ${i.trips} ${lv ? 'braucieni' : 'trips'}`;
+    if (i.source === 'supabase' && i.sampleCount > 0) return `◐ ${lv ? 'Tavi dati no datubāzes (Supabase): ' : 'Your data from the database (Supabase): '}${i.trips - i.sampleCount} ${lv ? 'īsti braucieni + ' : 'real rides + '}${i.sampleCount} ${lv ? 'PARAUGA braucieni (ilustratīvi)' : 'SAMPLE rides (illustrative)'}`;
     if (i.source === 'supabase') return `● ${lv ? 'Datu avots' : 'Data source'}: Supabase (EU) · ${i.trips} ${lv ? 'braucieni' : 'trips'} · ${i.events} ${lv ? 'notikumi' : 'events'} · ${i.ms} ms`;
     return `○ ${lv ? 'Šie ir SINTĒTISKI demo scenāriji (iebūvēti lapā). Īstie dati glabājas datubāzē un ir redzami tikai kontā.' : 'These are SYNTHETIC demo scenarios (built into the page). Real data lives in the database and is visible only in your account.'}`;
   }

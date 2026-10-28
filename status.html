@@ -39,7 +39,7 @@
   add('Datubāze (Supabase REST)', function () { return fetch(URL + '/rest/v1/cars?select=id&limit=1', { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return 'HTTP ' + r.status; }); });
   add('Reģistrācijas funkcija', function () { return fetch(URL + '/functions/v1/account', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: '{}' }).then(function (r) { return r.json().then(function (j) { if (r.status !== 400) throw new Error('negaidīta atbilde ' + r.status); return 'atbild (' + j.error + ')'; }); }); });
   add('Lapas faili (jaunākā versija)', function () {
-    var cur = (document.querySelector('script[src*="auth.js"]') || {}).src; return fetch('login.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (h) { var m = h.match(/auth\.js\?v=([0-9a-z]+)/); return 'serveris: ' + (m ? m[1] : '?') + (m && m[1] < '20261028u' ? ' (vecāks nekā gaidīts — nospied Ctrl+Shift+R)' : ' (ok)'); });
+    var cur = (document.querySelector('script[src*="auth.js"]') || {}).src; return fetch('login.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (h) { var m = h.match(/auth\.js\?v=([0-9a-z]+)/); return 'serveris: ' + (m ? m[1] : '?') + (m && m[1] < '20261028v' ? ' (vecāks nekā gaidīts — nospied Ctrl+Shift+R)' : ' (ok)'); });
   });
   add('Pieteikšanās šajā pārlūkā', function () { var s = null; try { s = JSON.parse(localStorage.getItem('octa_session') || 'null'); } catch (e) {} return s ? 'pieteicies kā ' + s.email : 'nav pieteicies (jāatver login lapa)'; });
 

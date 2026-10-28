@@ -69,7 +69,7 @@
     if (!r.trips.length && root.Samples) { await root.Samples.seed({ url: URL, key: KEY, token: tok, driver: r.drv, cars: r.cars, demo, sampleDriver: 'martins' }); r = await fetchAll(); seeded = true; }
     const out = convert({ drivers: [r.drv], cars: r.cars, trips: r.trips, events: r.events, traces: r.traces, mine: true });
     demo.cars = out.cars; demo.drivers = out.drivers;
-    return { source: 'supabase', mine: true, sample: r.trips.length > 0 && r.trips.every((t) => t.source === 'sample'), seeded, trips: r.trips.length, events: r.events.length, ms: Date.now() - t0 };
+    return { source: 'supabase', mine: true, sample: r.trips.length > 0 && r.trips.every((t) => t.source === 'sample'), sampleCount: r.trips.filter((t) => t.source === 'sample').length, seeded, trips: r.trips.length, events: r.events.length, ms: Date.now() - t0 };
   }
 
   const api = { load, loadMine, convert, get };
