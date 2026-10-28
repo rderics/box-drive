@@ -182,6 +182,7 @@
     <h2>${P('my_cars')} · ${P('car_score')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${carRows}</div></div>
     <h2>${P('you_driver')}</h2><p class="lead" style="font-size:14.5px;margin-bottom:10px">${P('you_lead')}</p>${scoreCard(r, c, tw)}
     <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>
+    <button class="pbtn" data-p="coach" style="margin-top:12px">✦ ${A().lang() === 'lv' ? 'AI treneris: ko uzlabot?' : 'AI coach: what to improve?'}</button>
     ${plan(r, d).length ? `<h2>${P('save_more')}</h2>${planHtml(plan(r, d))}` : ''}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp)}</div></div>
     <h2>${P('d_exp')}</h2><div class="pcard"><div class="body"><div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:26px">${a.fmt(d.expHours, 0)}</b><span>${P('hours_wheel')}</span></div>
@@ -335,9 +336,39 @@
       render();
     }
   }
+  /* AI coach animation: Engine -> Jev (ranks the fix) -> Gemini (writes the sentence). Jev/Gemini output here is pre-written demo text; the live chain is /api/jev + /api/gemini */
+  let coachT = [];
+  function coachData() {
+    const { d, r } = data(), lv = A().lang() === 'lv', pl = plan(r, d)[0], k = pl ? pl.k : 'speeding';
+    const txt = { speeding: [['Ātruma pārsniegšana', 'Speeding'], ['Brauc pie ierobežojuma vai zem tā — īpaši slapjā laikā. Tas ir vislielākais ieguvums tavā rādītājā.', 'Stay at or under the limit, especially in the wet. It is the biggest gain available in your score.']],
+      smooth: [['Braukšanas plūdums', 'Smoothness'], ['Skaties tālāk uz priekšu un bremzē maigāk — tas samazina asās bremzēšanas un uzlabo rādītāju.', 'Look further ahead and brake more gently — fewer harsh events and a better score.']],
+      phone: [['Telefona lietošana', 'Phone use'], ['Ieslēdz braukšanas režīmu — telefons stūrē uzmanību prom no ceļa.', 'Turn on driving mode — the phone is pulling your attention off the road.']],
+      night: [['Nakts un nogurums', 'Night & fatigue'], ['Pēc 2 stundām ieplāno pauzi un vēlos braucienus pārcel uz dienu.', 'Plan a break after 2 h and move late trips to daytime.']] };
+    const t = txt[k] || txt.speeding;
+    return { name: t[0][lv ? 0 : 1], text: t[1][lv ? 0 : 1], pts: pl ? Math.round(pl.pts) : 6, eur: pl && pl.eur > 0 ? pl.eur : 12, conf: 87, lv };
+  }
+  function coachSheet() {
+    const c = coachData(), n = st.coach, L = (a, b) => (c.lv ? a : b), shown = n >= 3 ? c.text.slice(0, st.typed || 0) : '';
+    const step = (i, ico, t, sub, body) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:12px 0;opacity:${n >= i ? 1 : .25};transition:opacity .4s"><span style="width:34px;height:34px;border-radius:50%;background:${n > i ? '#1f9d63' : n === i ? 'var(--brand)' : '#d9d9df'};color:#fff;display:grid;place-items:center;font-weight:800;flex:none;${n === i ? 'animation:cpulse 1s infinite' : ''}">${n > i ? '✓' : ico}</span><div style="min-width:0"><b>${t}</b><div style="font-size:13px;color:#7c7c84">${sub}</div>${n >= i ? body : ''}</div></div>`;
+    const done = n >= 4;
+    return `<div class="sheetbg"><div class="sheet" data-p="stop"><div class="grab"></div><style>@keyframes cpulse{50%{box-shadow:0 0 0 8px rgba(179,40,45,.18)}}</style><h3>✦ ${L('AI treneris', 'AI coach')}</h3>
+      ${step(0, '1', L('Dzinējs aprēķina rādītāju', 'Engine scores the rides'), L('pēdējie 20 braucieni, 6 rādītāji', 'last 20 rides, 6 factors'), '')}
+      ${step(1, '2', 'Jev', L('lēmumu modelis (nav LLM) — izvēlas, ko uzlabot vispirms', 'decision model (not an LLM) — picks what to improve first'), `<div style="margin-top:6px;font-size:14px">→ <b>${c.name}</b> <span class="pill good">${L('pārliecība', 'confidence')} ${n >= 2 ? c.conf : '…'}%</span></div>`)}
+      ${step(2, '3', 'Gemini', L('valoda — uzraksta padomu (skaitļus nemaina)', 'language — writes the advice (never changes numbers)'), '')}
+      ${n >= 3 ? `<div class="advbox mid" style="margin:4px 0 0"><p style="min-height:64px">&#8203;${shown.replace(/</g, '&lt;')}<span style="opacity:.5">${done ? '' : '▌'}</span></p></div>` : ''}
+      ${done ? `<div class="pcard" style="margin-top:12px"><div class="body" style="display:flex;justify-content:space-around;text-align:center"><div><b style="font-size:26px;color:var(--good)">+${c.pts}</b><div style="font-size:12px;color:#7c7c84">${L('punkti', 'points')}</div></div><div><b style="font-size:26px;color:var(--good)">−${c.eur} €</b><div style="font-size:12px;color:#7c7c84">${L('gadā', 'per year')}</div></div></div></div>` : ''}
+      <div style="height:12px"></div><button class="pbtn" data-p="coachx">${done ? 'OK' : L('Aizvērt', 'Close')}</button></div></div>`;
+  }
+  function coachRun() {
+    coachT.forEach(clearTimeout); coachT = []; st.coach = 0; st.typed = 0; render();
+    const at = (ms, f) => coachT.push(setTimeout(f, ms));
+    at(900, () => { st.coach = 1; render(); }); at(2300, () => { st.coach = 2; render(); }); at(3500, () => { st.coach = 3; render();
+      const full = coachData().text.length; for (let i = 1; i <= full; i++) coachT.push(setTimeout(() => { st.typed = i; const p = root && root.querySelector('.advbox p'); if (p && st.coach === 3) p.firstChild.nodeValue = coachData().text.slice(0, i); if (i === full) { st.coach = 4; render(); } }, i * 22)); });
+  }
   function sheet() {
     const a = A();
     if (st.addCar) return carForm();
+    if (st.coach != null) return coachSheet();
     if (st.kpi) {
       const r = st.car ? a.carRes(a.D.cars.find((x) => x.id === st.car)).res : data().r, k = kpis(r).find((x) => x.key === st.kpi), w = Math.round(r.weights[st.kpi]);
       return `<div class="sheetbg" data-p="close"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${a.t('k_' + st.kpi)}</h3><div style="font-size:30px;font-weight:700;color:var(--${a.col(k.s)})">${k.value}</div><div style="color:#7c7c84;margin:2px 0 8px">${k.base}</div>${mbar(k.s, a.col(k.s))}
@@ -363,16 +394,18 @@
     if (st.onboard != null) return `<div class="device"><div class="sb">${SB}</div>${onboarding()}</div><p class="disc">${P('disc')}</p>`;
     const screen = st.trip ? tripScreen() : st.car ? carScreen() : { cars, drive, sp, more }[st.tab]();
     const tabs = [['cars', 'car'], ['drive', 'gauge'], ['sp', 'doc'], ['more', 'dots']].map(([k, ic]) => `<button class="${st.tab === k && !st.trip ? 'on' : ''}" data-p="tab:${k}">${I(ic)}<span>${P('tab_' + k)}</span>${k === 'drive' ? '<i class="dot"></i>' : ''}</button>`).join('');
-    return `<div class="device${st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving ? ' still' : ''}"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
+    return `<div class="device${st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null ? ' still' : ''}"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
   }
   function render() {
     if (!root) return; const sc = root.querySelector('.scr'), y = sc ? sc.scrollTop : 0;
-    const still = !!(st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving); root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false; if (!still && window.App && App.animateIn) App.animateIn(root);
+    const still = !!(st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null); root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false; if (!still && window.App && App.animateIn) App.animateIn(root);
   }
   function onClick(e) {
     const el = e.target.closest('[data-p]'); if (!el) return; const [act, arg] = el.dataset.p.split(':'), a = A();
     if (act === 'stop') return; e.stopPropagation();
     if (act === 'tab') { st.tab = arg; st.trip = null; st.kpi = null; st.car = null; }
+    else if (act === 'coach') { coachRun(); return; }
+    else if (act === 'coachx') { coachT.forEach(clearTimeout); st.coach = null; }
     else if (act === 'addcar') { st.addCar = true; st.form = st.form || null; st.formMsg = ''; }
     else if (act === 'closecar') { st.addCar = false; st.formMsg = ''; }
     else if (act === 'savecar') { saveCar(); return; }

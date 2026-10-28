@@ -2,104 +2,236 @@
 <html lang="lv">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart-ID pieteikšanās (simulācija) — OCTA braucēja rādītājs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pieteikšanās — OCTA braucēja rādītājs</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
-  :root{--bg:#f6f5fa;--card:#fff;--ink:#1c1b25;--mute:#6b6a7a;--line:#e4e2ee;--brand:#b3282d;--brand-soft:#fbeaea;--good:#1f9d63;--good-soft:#e1f5ec}
-  @media (prefers-color-scheme:dark){:root{--bg:#14131a;--card:#1d1c26;--ink:#efeef7;--mute:#9d9bb0;--line:#2d2b3b;--brand:#e5565c;--brand-soft:#3a1c1e;--good:#3dd391;--good-soft:#16352a}}
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px}
-  .wrap{width:100%;max-width:440px;display:grid;gap:14px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 1px 2px rgba(20,20,30,.04),0 14px 40px rgba(20,20,30,.08);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
-  @keyframes rise{from{opacity:0;transform:translateY(16px)}}
-  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);padding:3px 10px;border-radius:99px}
-  h1{margin:12px 0 4px;font-size:28px;letter-spacing:-.02em}
-  p{margin:0}.mute{color:var(--mute)}.small{font-size:13px}
-  .who{display:flex;gap:14px;align-items:center;margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:16px}
-  .av{width:48px;height:48px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;flex:none}
-  .btn{width:100%;border:0;border-radius:14px;padding:15px 18px;font:inherit;font-weight:700;font-size:17px;background:var(--brand);color:#fff;cursor:pointer;transition:transform .15s}
-  .btn:hover{transform:translateY(-1px)}
-  .code{font:800 68px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-align:center;color:var(--brand);margin:6px 0 14px;animation:pulse 1.4s ease-in-out infinite}
-  @keyframes pulse{50%{transform:scale(1.04)}}
-  .bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s linear}
-  .eid{display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center}
-  .mock{border:2px solid var(--line);border-radius:24px;padding:14px 10px;text-align:center;display:grid;gap:8px;background:var(--bg);animation:rise .5s .1s both}
-  .mock b{font:800 24px ui-monospace,Consolas,monospace}
-  .pin{display:flex;gap:8px;justify-content:center}.pin i{width:12px;height:12px;border-radius:50%;background:var(--line);transition:background .2s}.pin i.on{background:var(--brand)}
-  .ok{display:grid;place-items:center;gap:10px;text-align:center;padding:10px 0}
-  .ok svg{width:96px;height:96px}.ok circle{fill:var(--good-soft)}
-  .ok .c{fill:none;stroke:var(--good);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .15s ease-out forwards}
-  .ok .r{fill:none;stroke:var(--good);stroke-width:5;stroke-dasharray:290;stroke-dashoffset:290;animation:draw .7s ease-out forwards}
-  @keyframes draw{to{stroke-dashoffset:0}}
-  a{color:var(--brand);font-weight:600}
-  .qr{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
-  .qr img{border-radius:8px;flex:none}
-  [hidden]{display:none!important}
-  @media (max-width:420px){.eid{grid-template-columns:1fr}.mock{max-width:200px;margin:0 auto}}
-  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.ok .c,.ok .r{stroke-dashoffset:0}}
+/* The login flow of the LTAB app (language -> identification method -> Smart-ID adapter -> terms), redrawn as a SIMULATION in the app's own phone frame.
+   No real logos; nothing is sent to any e-ID service. */
+:root{--brand:#b3282d;--brand-soft:#fbeaea;--ink:#232227;--mute:#8b8a99;--line:#e9e8ed;--vpm:#f4f4f9;--edge:#7089b8;--dark:#2c2e3a;--good:#1f9d63}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#e9e8ee;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);display:grid;place-items:center;padding:20px;letter-spacing:.012em}
+.device{position:relative;width:390px;height:812px;border:10px solid #232227;border-radius:46px;background:#fff;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:12px 26px 4px;font-weight:600;font-size:15px;flex:none}
+.scr{flex:1;overflow-y:auto;position:relative}
+.screen{display:none;min-height:100%;flex-direction:column;animation:fade .35s ease both}.screen.on{display:flex}
+@keyframes fade{from{opacity:0;transform:translateX(18px)}}
+h1,h2,h3,p{margin:0}
+.sim{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);padding:3px 9px;border-radius:99px;display:inline-block}
+/* 1 language */
+.lang{align-items:center;justify-content:flex-start;padding:0 22px}
+.wordmark{margin:150px 0 70px;text-align:center;font:800 54px/1 system-ui,sans-serif;color:#55555f;letter-spacing:-.02em}.wordmark b{color:var(--brand)}
+.lang .lbl{align-self:flex-start;color:#a3a2b3;font-size:15px;margin-bottom:12px}
+.opt{display:flex;align-items:center;gap:16px;width:100%;background:#fff;border:0;border-radius:16px;padding:20px;margin-bottom:14px;font:inherit;font-size:19px;box-shadow:0 8px 26px rgba(30,30,60,.07);cursor:pointer;text-align:left}
+.opt .fl{width:34px;height:24px;border-radius:4px;flex:none}.opt .ch{margin-left:auto;color:#a3a2b3;font-size:22px}
+/* 2/3 VPM */
+.top{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid #e1e5ee;background:#fff;flex:none}
+.top .bk{font-size:26px;line-height:1;border:0;background:none;cursor:pointer;padding:0 8px 0 0}.top .tt{position:absolute;left:0;right:0;text-align:center;font-size:15px;pointer-events:none}
+.vpmhead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border-bottom:1px solid #e1e5ee;flex:none}
+.vpmhead b{font:700 17px/1.2 system-ui;color:#3b4a6b}.vpmhead span{font-size:15px;color:#3b4a6b}
+.vpm{background:var(--vpm);flex:1;padding:18px;display:flex;flex-direction:column}
+.req{font-size:14px;margin-bottom:12px}.req i{color:var(--brand);font-style:normal}
+.agree{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.45;margin-bottom:16px}
+.agree input{width:26px;height:26px;flex:none;accent-color:var(--brand)}
+.sec{font-weight:700;font-size:15.5px;line-height:1.35;margin:10px 0}
+.id{display:flex;align-items:center;justify-content:space-between;width:100%;background:#fff;border:2px solid var(--edge);border-radius:10px;padding:13px 16px;margin-bottom:9px;font:inherit;font-weight:700;font-size:18px;cursor:pointer;text-align:left}
+.id.off{opacity:.45;cursor:not-allowed}.id .pix{width:30px;height:30px;border-radius:5px;background:conic-gradient(#43a6d9 0 25%,#6c4c9c 0 50%,#444f52 0 75%,#e0521e 0)}.id .sid{width:30px;height:30px;border-radius:50%;border:3px solid #1aa59a}.id .eu{width:30px;height:22px;background:#1c3f9a;border-radius:3px}
+.note{font-size:12.5px;color:var(--mute);margin-top:6px;line-height:1.4}
+/* smart-id adapter */
+.acc{background:#fff;border:1.5px solid var(--edge);border-radius:10px;padding:16px;font-size:19px;font-weight:700;margin:8px 0 12px;display:flex;justify-content:space-between;align-items:center}
+.or{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:14px;margin:8px 0}.or:before,.or:after{content:"";flex:1;height:1px;background:#dcdce6}
+.dark{display:block;width:100%;border:0;border-radius:10px;background:var(--dark);color:#fff;font:inherit;font-weight:600;font-size:16px;padding:15px;cursor:pointer;text-align:center}
+.grey{display:block;width:100%;border:0;border-radius:10px;background:#9c9ca2;color:#232227;font:inherit;font-weight:600;font-size:16px;padding:14px;margin-top:10px;cursor:pointer}
+.big{font-size:22px;font-weight:700;text-align:center;margin:12px 0 4px;line-height:1.3}
+.who{display:grid;gap:8px;margin:8px 0 12px}
+.who button{display:flex;gap:12px;align-items:center;background:#fff;border:2px solid #e1e5ee;border-radius:12px;padding:10px 12px;font:inherit;text-align:left;cursor:pointer}
+.who button.sel{border-color:var(--brand);background:var(--brand-soft)}
+.av{width:40px;height:40px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;flex:none}
+.who small{display:block;color:var(--mute)}
+label.f{font-size:14px;font-weight:700;margin:6px 0 6px;display:block}label.f i{color:var(--brand);font-style:normal}
+.inp{width:100%;border:1.5px solid #9aa0b4;border-radius:8px;padding:14px;font:inherit;font-size:16px;background:#fff;color:#6b6a7a;margin-bottom:12px}
+/* code check */
+.code{font:800 64px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-align:center;color:var(--brand);margin:20px 0 14px;animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.04)}}
+.prog{height:6px;border-radius:9px;background:#e4e4ec;overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s linear}
+.nphone{margin:22px auto 0;width:210px;border:2px solid #dcdce6;border-radius:26px;padding:16px 12px;text-align:center;background:#fff;display:grid;gap:8px;box-shadow:0 8px 26px rgba(30,30,60,.08)}
+.nphone b{font:800 26px ui-monospace,Consolas,monospace}.pin{display:flex;gap:9px;justify-content:center}.pin i{width:13px;height:13px;border-radius:50%;background:#dcdce6;transition:background .2s}.pin i.on{background:var(--brand)}
+.okc{display:grid;place-items:center;text-align:center;gap:12px;margin:auto 0}
+.okc svg{width:110px;height:110px}.okc .bg{fill:#e1f5ec}.okc .r{fill:none;stroke:var(--good);stroke-width:5;stroke-dasharray:290;stroke-dashoffset:290;animation:dr .7s ease-out forwards}.okc .c{fill:none;stroke:var(--good);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:dr .5s .2s ease-out forwards}@keyframes dr{to{stroke-dashoffset:0}}
+/* welcome */
+.welcome{align-items:center;padding:0 18px 20px;text-align:center}
+.clip{margin:90px 0 40px}
+.welcome h2{font-size:24px;margin-bottom:10px}.welcome .sub{color:var(--mute);font-size:16px;line-height:1.5;margin-bottom:24px}
+.row{display:flex;align-items:center;gap:14px;width:100%;background:#fff;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 8px 26px rgba(30,30,60,.07);font-size:17px;text-align:left}.row .ch{margin-left:auto;color:#a3a2b3}
+.red{color:var(--brand)}
+.spacer{flex:1}
+.cb{display:flex;gap:14px;align-items:center;text-align:left;font-size:14.5px;margin:0 0 14px;width:100%}.cb input{width:26px;height:26px;accent-color:var(--brand);flex:none}
+.pbtn{display:block;width:100%;border:0;border-radius:14px;background:var(--brand);color:#fff;font:inherit;font-size:18px;padding:16px;cursor:pointer}.pbtn:disabled{background:#d9969a;cursor:default}
+.msg{color:var(--brand);font-size:13.5px;min-height:20px;margin:4px 0}
+.disc{position:fixed;left:0;right:0;bottom:8px;text-align:center;font-size:11.5px;color:#7c7c84}
+@media (max-width:480px){body{padding:0;place-items:stretch}.device{width:100%;height:100%;border:0;border-radius:0;box-shadow:none}.disc{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.okc .r,.okc .c{stroke-dashoffset:0}}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
-<main class="wrap">
-  <section class="card" id="s1">
-    <span class="tag">Smart-ID · simulācija</span>
-    <h1>Pieteikšanās</h1>
-    <p class="mute">Tā darbojas e-ID pieteikšanās. Šajā demo nekas netiek sūtīts uz īstu e-ID pakalpojumu.</p>
-    <div class="who"><span class="av" id="ini">?</span><div><b id="nm">—</b><br><span class="mute small" id="em"></span></div></div>
-    <button class="btn" id="go" type="button">Pieteikties ar Smart-ID</button>
-    <p class="mute small" id="first" hidden style="margin-top:12px">Šajā ierīcē vēl nav saglabāta pieteikšanās. Pieraksties vienu reizi ar e-pastu, pēc tam Smart-ID simulācija ielogos automātiski.</p>
-    <p class="small" style="margin-top:14px;text-align:center"><a href="signin.html">Pieteikties ar e-pastu</a> <span class="mute">·</span> <a href="#" id="forget" hidden>Aizmirst šo ierīci</a></p>
-  </section>
-  <section class="card" id="s2" hidden>
-    <span class="tag">2. solis · apstiprini e-ID lietotnē</span>
-    <h1>Pārbaudi kodu</h1>
-    <p class="mute" id="who2"></p>
-    <div class="eid" style="margin-top:14px">
-      <div><div class="code" id="code" aria-live="polite">0000</div><div class="bar"><i id="pg"></i></div><p class="mute small" id="pgt" style="margin-top:8px">Gaida apstiprinājumu…</p></div>
-      <div class="mock"><span class="mute small">e-ID lietotne</span><b id="code2">0000</b><span class="small">Pieteikties Box-Driver?</span><div class="pin"><i></i><i></i><i></i><i></i></div></div>
-    </div>
-  </section>
-  <section class="card" id="s3" hidden>
-    <div class="ok"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><circle class="r" cx="50" cy="50" r="46"/><path class="c" d="M30 52 L45 66 L71 36"/></svg><h1 style="margin:0">Pieteikšanās veiksmīga</h1><p class="mute" id="hi"></p></div>
-  </section>
-  <div class="qr"><img src="qr.png" alt="QR kods uz demo" width="96" height="96"><div><b>Atver telefonā</b><p class="mute small" style="margin-top:3px">Noskenē QR kodu: rderics.id.lv/octa</p></div></div>
-</main>
-<script src="auth.js?v=20261028z"></script>
+<div class="device">
+  <div class="sb"><span id="clk">9:41</span><span>●●● 5G ▮</span></div>
+  <div class="scr">
+
+    <!-- 1 language -->
+    <section class="screen lang on" id="s1">
+      <div class="wordmark">Box<b>·</b>Driver</div>
+      <p class="lbl" id="l_lbl">Izvēlēties valodu</p>
+      <button class="opt" data-lang="lv"><span class="fl" style="background:linear-gradient(#9e3039 40%,#fff 40% 60%,#9e3039 60%)"></span>Latviešu<span class="ch">›</span></button>
+      <button class="opt" data-lang="en"><span class="fl" style="background:linear-gradient(135deg,#243f8f 0 40%,#fff 40% 46%,#c8102e 46% 54%,#fff 54% 60%,#243f8f 60%)"></span>English<span class="ch">›</span></button>
+      <div class="spacer"></div><p style="text-align:center"><span class="sim">Simulācija</span></p>
+    </section>
+
+    <!-- 2 identification method -->
+    <section class="screen" id="s2">
+      <div class="top"><button class="bk" id="b2" aria-label="Atpakaļ">‹</button><span class="tt" id="t_auth">Autentifikācija</span><span style="width:20px"></span></div>
+      <div class="vpmhead"><b>Vienotās pieteikšanās<br>modulis</b><span>🌐 <span id="lg">LV</span></span></div>
+      <div class="vpm">
+        <p class="req"><i>*</i> <span id="t_req">Lauki, kas atzīmēti ar zvaigznīti, ir obligāti</span></p>
+        <label class="agree"><input type="checkbox" id="agree"><span id="t_agree">Piekrītu identifikācijas noteikumiem un atļauju nosūtīt savus datus (vārds, uzvārds un personas kods) e-pakalpojuma sniedzējam — šajā demo nekas netiek sūtīts. <i style="color:var(--brand);font-style:normal">*</i></span></label>
+        <p class="sec" id="t_h1">Identifikācija ar kvalificētu augstas drošības elektronisko identifikāciju</p>
+        <button class="id off" disabled>eID <span class="pix"></span></button>
+        <button class="id off" disabled>eID Scan <span class="pix"></span></button>
+        <button class="id off" disabled>eParaksts mobile <span class="pix"></span></button>
+        <p class="sec" id="t_h2">Identifikācija ar kvalificētu elektroniskās identifikācijas līdzekli</p>
+        <button class="id" id="goSid">Smart-ID <span class="sid"></span></button>
+        <button class="id off" disabled>eIDAS <span class="eu"></span></button>
+        <p class="note" id="t_hint">Demo: aktīva ir tikai Smart-ID simulācija.</p>
+      </div>
+    </section>
+
+    <!-- 3 Smart-ID adapter -->
+    <section class="screen" id="s3">
+      <div class="top"><button class="bk" id="b3" aria-label="Atpakaļ">‹</button><span class="tt" id="t_auth2">Autentifikācija</span><span style="width:20px"></span></div>
+      <div class="vpmhead"><b>Smart-ID autentifikācijas adapteris</b><span>🌐 <span class="lg2">LV</span></span></div>
+      <div class="vpm">
+        <div class="acc"><span id="t_qr">Autentificēties ar QR kodu</span><span>⌄</span></div>
+        <div class="or"><span id="t_or1">vai</span></div>
+        <button class="dark" type="button" id="openApp">Atvērt Smart-ID lietotni</button>
+        <div class="or"><span id="t_or2">vai</span></div>
+        <p class="big" id="t_notif">Saņemt paziņojumu Smart-ID</p>
+        <p class="sec" style="margin-top:10px" id="t_who">Demo lietotājs</p>
+        <div class="who" id="who"></div>
+        <label class="f"><span id="t_pc">Personas kods</span><i>*</i></label>
+        <input class="inp" id="pc" value="••••••-•••••" readonly aria-label="Personas kods (demo)">
+        <p class="msg" id="msg"></p>
+        <button class="dark" type="button" id="auth">Autentificēties</button>
+        <button class="grey" type="button" id="cancel">Atcelt</button>
+        <p class="note" id="t_first" hidden></p>
+      </div>
+    </section>
+
+    <!-- 4 code check -->
+    <section class="screen" id="s4">
+      <div class="top"><span style="width:20px"></span><span class="tt">Smart-ID</span><span style="width:20px"></span></div>
+      <div class="vpm" style="background:#fff">
+        <p class="big" id="t_chk">Pārbaudi kodu</p>
+        <p class="note" style="text-align:center" id="whoLine"></p>
+        <div class="code" id="code" aria-live="polite">0000</div>
+        <div class="prog"><i id="pg"></i></div>
+        <p class="note" style="text-align:center;margin-top:8px" id="pgt">Gaida apstiprinājumu…</p>
+        <div class="nphone"><span class="note" style="margin:0">Smart-ID</span><b id="code2">0000</b><span style="font-size:13px" id="t_conf">Pieteikties Box-Driver?</span><div class="pin"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+    </section>
+
+    <!-- 5 success -->
+    <section class="screen" id="s5">
+      <div class="okc"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="r" cx="50" cy="50" r="46"/><path class="c" d="M30 52 L45 66 L71 36"/></svg><h2 id="t_ok">Pieteikšanās veiksmīga</h2><p style="color:var(--mute)" id="hi"></p></div>
+    </section>
+
+    <!-- 6 welcome / terms -->
+    <section class="screen welcome" id="s6">
+      <svg class="clip" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true"><g fill="none" stroke="#d9d9de" stroke-width="3"><rect x="38" y="18" width="62" height="86" transform="rotate(-8 38 18)" fill="#f6f6f8"/><rect x="62" y="22" width="62" height="96" fill="#fff"/></g><rect x="84" y="14" width="34" height="12" fill="#b3282d"/><circle cx="93" cy="14" r="6" fill="none" stroke="#b3282d" stroke-width="3"/><path d="M80 52h30M80 62h30" stroke="#222" stroke-width="2"/><rect x="82" y="72" width="38" height="34" fill="#fff" stroke="#222"/><circle cx="101" cy="89" r="12" fill="#b3282d"/><path d="M101 83v12M95 89h12" stroke="#fff" stroke-width="2"/></svg>
+      <h2 id="t_w">Sveicināti OCTA braucēja rādītājā</h2>
+      <p class="sub" id="t_ws">Lūdzu, iepazīstieties ar lietošanas noteikumiem un privātuma politiku, pirms lietotnes izmantošanas.</p>
+      <div class="row"><span class="red">📄</span><span id="t_tos">Lietošanas noteikumi</span><span class="ch">›</span></div>
+      <div class="row"><span class="red">📄</span><span id="t_pp">Privātuma politika</span><span class="ch">›</span></div>
+      <div class="spacer"></div>
+      <label class="cb"><input type="checkbox" id="tos"><span id="t_tosc">Esmu izlasījis un piekritu lietotnes lietošanas noteikumiem un privātuma politikai</span></label>
+      <button class="pbtn" id="okBtn" disabled>Apstiprināt</button>
+    </section>
+
+  </div>
+</div>
+<p class="disc" id="disc">Simulēta pieteikšanās, veidota pēc LTAB lietotnes. Nav oficiāls LTAB produkts, nekas netiek sūtīts uz e-ID pakalpojumiem.</p>
+<script src="auth.js?v=20261029a"></script>
 <script>
 (function () {
-  var $ = function (id) { return document.getElementById(id); }, busy = false;
-  var who = Auth.user() || Auth.remembered();
+  var $ = function (id) { return document.getElementById(id); }, lang = 'lv', pick = null, busy = false;
+  var T = {
+    lv: { lbl: 'Izvēlēties valodu', auth: 'Autentifikācija', req: 'Lauki, kas atzīmēti ar zvaigznīti, ir obligāti', agree: 'Piekrītu identifikācijas noteikumiem un atļauju nosūtīt savus datus (vārds, uzvārds un personas kods) e-pakalpojuma sniedzējam — šajā demo nekas netiek sūtīts. *', h1: 'Identifikācija ar kvalificētu augstas drošības elektronisko identifikāciju', h2: 'Identifikācija ar kvalificētu elektroniskās identifikācijas līdzekli', hint: 'Demo: aktīva ir tikai Smart-ID simulācija.', qr: 'Autentificēties ar QR kodu', or: 'vai', notif: 'Saņemt paziņojumu Smart-ID', who: 'Demo lietotājs', pc: 'Personas kods', authBtn: 'Autentificēties', cancel: 'Atcelt', open: 'Atvērt Smart-ID lietotni', chk: 'Pārbaudi kodu', conf: 'Pieteikties Box-Driver?', wait: 'Gaida apstiprinājumu…', pin: 'PIN pieņemts', ok: 'Pieteikšanās veiksmīga', w: 'Sveicināti OCTA braucēja rādītājā', ws: 'Lūdzu, iepazīstieties ar lietošanas noteikumiem un privātuma politiku, pirms lietotnes izmantošanas.', tos: 'Lietošanas noteikumi', pp: 'Privātuma politika', tosc: 'Esmu izlasījis un piekritu lietotnes lietošanas noteikumiem un privātuma politikai', okb: 'Apstiprināt', agreeMsg: 'Vispirms atzīmē piekrišanu.', pickMsg: 'Izvēlies demo lietotāju.', first: 'Šajā ierīcē vēl nav sagatavotu demo lietotāju. Pajautā komandai, lai sagatavo ierīci.', link: 'Pieteikties ar e-pastu', exp: 'Demo lietotāja sesija beigusies — jāsagatavo ierīce no jauna.', as: 'Pieteikšanās kā' },
+    en: { lbl: 'Choose language', auth: 'Authentication', req: 'Fields marked with a star symbol are mandatory', agree: 'I agree to the identification terms and allow sending my data (name, surname and identity number) to the e-service provider — nothing is sent in this demo. *', h1: 'Identification with a qualified high security electronic identification', h2: 'Identification with a qualified means of electronic identification', hint: 'Demo: only the Smart-ID simulation is active.', qr: 'Authenticate with a QR code', or: 'or', notif: 'Receive a notification in Smart-ID', who: 'Demo user', pc: 'Person code', authBtn: 'Authenticate', cancel: 'Cancel', open: 'Open the Smart-ID app', chk: 'Check the code', conf: 'Log in to Box-Driver?', wait: 'Waiting for confirmation…', pin: 'PIN accepted', ok: 'Login successful', w: 'Welcome to the OCTA driver score', ws: 'Please read the terms of use and the privacy policy before using the app.', tos: 'Terms of use', pp: 'Privacy policy', tosc: 'I have read and agree to the terms of use and the privacy policy', okb: 'Confirm', agreeMsg: 'Tick the agreement first.', pickMsg: 'Choose a demo user.', first: 'No demo users are prepared on this device yet. Ask the team to prepare the device.', link: 'Sign in with e-mail', exp: 'The demo user's session expired — the device must be prepared again.', as: 'Logging in as' } };
+  function say() {
+    var t = T[lang], map = { l_lbl: 'lbl', t_auth: 'auth', t_auth2: 'auth', t_req: 'req', t_agree: 'agree', t_h1: 'h1', t_h2: 'h2', t_hint: 'hint', t_qr: 'qr', t_or1: 'or', t_or2: 'or', t_notif: 'notif', t_who: 'who', t_pc: 'pc', t_chk: 'chk', t_conf: 'conf', t_ok: 'ok', t_w: 'w', t_ws: 'ws', t_tos: 'tos', t_pp: 'pp', t_tosc: 'tosc' };
+    Object.keys(map).forEach(function (id) { var e = $(id); if (e) e.textContent = t[map[id]]; });
+    $('auth').textContent = t.authBtn; $('cancel').textContent = t.cancel; $('openApp').textContent = t.open; $('okBtn').textContent = t.okb; $('lg').textContent = $$('lg2'); document.documentElement.lang = lang;
+    Array.prototype.forEach.call(document.querySelectorAll('.lg2'), function (e) { e.textContent = lang.toUpperCase(); });
+  }
+  function $$() { return lang.toUpperCase(); }
+  function show(n) { Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.toggle('on', s.id === 's' + n); }); }
+  function clock() { var d = new Date(); $('clk').textContent = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); } clock(); setInterval(clock, 20000);
+
+  var people = Auth.remembered();    // every account used on this device
+  var cur = Auth.user(); if (cur && !people.some(function (p) { return p.email === cur.email; })) people.unshift(cur);
+  if (location.hash === '#lv' || location.hash === '#en') { lang = location.hash.slice(1); }
   function initials(n) { return String(n || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
-  if (who) { $('ini').textContent = initials(who.name || who.email); $('nm').textContent = who.name || who.email; $('em').textContent = who.email || ''; $('forget').hidden = false; }
-  else { $('nm').textContent = 'Nav saglabāta konta'; $('go').textContent = 'Pieteikties ar e-pastu (vienreiz)'; $('first').hidden = false; }
-  $('forget').onclick = function (e) { e.preventDefault(); Auth.forget(); location.reload(); };
+  function persons() {
+    var w = $('who'); w.innerHTML = '';
+    if (!people.length) { $('t_first').hidden = false; $('t_first').innerHTML = T[lang].first + ''; return; }
+    $('t_first').hidden = true;
+    people.forEach(function (p) {
+      var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<span class="av">' + initials(p.name || p.email).replace(/</g, '') + '</span><span><b>' + String(p.name || p.email).replace(/</g, '') + '</b><small>' + String(p.email || '').replace(/</g, '') + '</small></span>';
+      b.onclick = function () { pick = p; Array.prototype.forEach.call(w.children, function (c) { c.classList.toggle('sel', c === b); }); $('msg').textContent = ''; };
+      w.appendChild(b);
+    });
+    if (people.length === 1) { w.firstChild.click(); }
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lang]'), function (b) { b.onclick = function () { lang = b.dataset.lang; say(); show(2); }; });
+  $('b2').onclick = function () { show(1); }; $('b3').onclick = function () { show(2); };
+  $('goSid').onclick = function () { if (!$('agree').checked) { $('agree').focus(); $('agree').parentNode.style.outline = '2px solid #b3282d'; return; } say(); persons(); show(3); };
+  $('agree').onchange = function () { $('agree').parentNode.style.outline = 'none'; };
+  $('cancel').onclick = function () { show(2); };
+  $('openApp').onclick = function () { $('auth').click(); };
+
+  $('auth').onclick = function () {
+    if (busy) return;
+    if (!people.length) { $('msg').textContent = T[lang].first; return; }
+    if (!pick) { $('msg').textContent = T[lang].pickMsg; return; }
+    busy = true; show(4);
+    var code = String(1000 + Math.floor(Math.random() * 9000)); $('code').textContent = code; $('code2').textContent = code;
+    $('whoLine').innerHTML = T[lang].as + ' <b>' + String(pick.name || pick.email).replace(/</g, '') + '</b>'; $('pgt').textContent = T[lang].wait;
+    var dots = Array.prototype.slice.call(document.querySelectorAll('.pin i')); dots.forEach(function (d) { d.classList.remove('on'); });
+    var t0 = Date.now(), dur = 4200, session = Auth.eid(pick.email).catch(function (e) { return e; });
+    var iv = setInterval(function () {
+      var f = Math.min(1, (Date.now() - t0) / dur); $('pg').style.width = (f * 100) + '%';
+      dots.forEach(function (d, i) { d.classList.toggle('on', f > 0.45 + i * 0.12); });
+      if (f > 0.9) $('pgt').textContent = T[lang].pin;
+      if (f >= 1) {
+        clearInterval(iv);
+        session.then(function (s) {
+          busy = false;
+          if (s instanceof Error) { show(3); people = Auth.remembered(); pick = null; persons(); $('msg').textContent = T[lang].exp; return; }
+          $('hi').textContent = String(s.name || s.email).split(' ')[0]; show(5);
+          setTimeout(function () { var seen = false; try { seen = localStorage.getItem('octa_tos') === '1'; } catch (e) {} if (seen) go(); else show(6); }, 1400);
+        });
+      }
+    }, 100);
+  };
+  $('tos').onchange = function () { $('okBtn').disabled = !$('tos').checked; };
+  $('okBtn').onclick = function () { try { localStorage.setItem('octa_tos', '1'); } catch (e) {} go(); };
 
   function go() {   // administrators open the admin site, everyone else the app
     return Auth.token().then(function (t) { return fetch(Auth.URL + '/functions/v1/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'me' }) }); })
       .then(function (r) { return r.json(); }).then(function (m) { location.href = m && m.admin ? 'admin.html' : './'; }).catch(function () { location.href = './'; });
   }
-  $('go').onclick = function () {
-    if (busy) return;
-    if (!who) { location.href = 'signin.html'; return; }
-    busy = true; $('s1').hidden = true; $('s2').hidden = false;
-    var code = String(1000 + Math.floor(Math.random() * 9000)); $('code').textContent = code; $('code2').textContent = code;
-    $('who2').innerHTML = 'Pieteikšanās kā <b>' + String(who.name || who.email).replace(/</g, '') + '</b>. Pārbaudi, vai e-ID lietotnē redzams tas pats kods, un ievadi PIN.';
-    var dots = Array.prototype.slice.call(document.querySelectorAll('.pin i')), t0 = Date.now(), dur = 4200, session = Auth.eid().catch(function (e) { return e; });
-    var iv = setInterval(function () {
-      var f = Math.min(1, (Date.now() - t0) / dur); $('pg').style.width = (f * 100) + '%';
-      dots.forEach(function (d, i) { d.classList.toggle('on', f > 0.45 + i * 0.12); });
-      if (f > 0.9) $('pgt').textContent = 'PIN pieņemts';
-      if (f >= 1) {
-        clearInterval(iv);
-        session.then(function (s) {
-          if (s instanceof Error) { busy = false; $('s2').hidden = true; $('s1').hidden = false; $('first').hidden = false; $('first').textContent = 'Saglabātā pieteikšanās beidzās. Pieraksties vienu reizi ar e-pastu.'; $('go').textContent = 'Pieteikties ar e-pastu'; who = null; return; }
-          $('s2').hidden = true; $('s3').hidden = false; $('hi').textContent = 'Sveiks, ' + String(s.name || s.email).split(' ')[0] + '!';
-          setTimeout(go, 1300);
-        });
-      }
-    }, 100);
-  };
+  say();
 })();
 </script>
 </body>
