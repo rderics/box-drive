@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dzīvie braucieni — simulators</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="mini.css?v=20261028i">
+</head>
+<body>
+<main class="mini" style="max-width:1000px">
+  <h1>Dzīvie braucieni <small>Assetto Corsa → datubāze</small></h1>
+  <p class="lead">Šeit parādās braucieni, ko <code>live.py --upload</code> nosūta no Assetto Corsa. Tie ir <b>simulatora dati</b> (īsta fizika, bet spēle), nevis braukšana uz ceļa — tāpēc tie ir atzīmēti atsevišķi. Lapa atjaunojas pati ik pēc 5 s.</p>
+  <section class="card"><p id="msg" class="note">Ielādē…</p><div id="cars"></div></section>
+  <section class="card"><h3 style="margin-top:0">Pēdējie braucieni</h3><div id="trips" style="overflow-x:auto"></div></section>
+  <section class="card" id="trace" hidden><h3 style="margin-top:0">Pēdējā brauciena ātrums <small id="tracetitle"></small></h3><div id="chart"></div></section>
+  <p class="note">Kā nosūtīt savu braucienu: <code>python live.py ac --zones "0-1500:60,1500-:90" --upload --car "Mazda MX-5" --plate AC-001</code> · <a href="./">← uz lietotnes demo</a> · <a href="insurer.html">apdrošinātāja skats</a></p>
+</main>
+<script src="engine.js?v=20261028i"></script>
+<script>
+(function () {
+  var URL = 'https://qjakepgeqioqrmsufaty.supabase.co/rest/v1/', KEY = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS', E = window.Engine, $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var get = function (q) { return fetch(URL + q, { headers: { apikey: KEY } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+  var cls = function (b) { return b === 'low' ? 'good' : b === 'medium' ? 'mid' : 'bad'; }, bandLv = { low: 'zems risks', medium: 'vidējs risks', high: 'augsts risks' };
+  var ago = function (iso) { var s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? Math.round(s) + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : s < 172800 ? Math.round(s / 3600) + ' h' : Math.round(s / 86400) + ' d'; };
+  var lastTrace = null;
+
+  function toEngine(t) {
+    return { id: t.id, startISO: new Date(t.start_at).toISOString(), mode: t.mode, roleConf: t.role_conf, counted: t.counted, weather: t.weather, durationS: t.duration_s, km: t.km, darkKm: t.dark_km,
+      brake: t.brake, accel: t.accel, corner: t.corner, overLimS: t.over_lim_s, overSafeS: t.over_safe_s, severeS: t.severe_s, phoneEv: t.phone_ev, phoneS: t.phone_s,
+      parkings: t.parkings, lotCycles: t.lot_cycles, lotS: t.lot_s, lotOverS: t.lot_over_s, surge: t.surge, bump: t.bump };
+  }
+  function chart(tr) {
+    var v = tr.v, W = 900, H = 160, max = Math.max.apply(null, v.concat([10])), lim = []; tr.lim_runs.forEach(function (r) { for (var i = 0; i < r[1]; i++) lim.push(r[0]); });
+    var x = function (i) { return (i / Math.max(1, v.length - 1)) * W; }, y = function (s) { return H - (s / max) * (H - 10) - 5; };
+    var path = function (a) { return a.map(function (s, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(s).toFixed(1); }).join(' '); };
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="ātruma grafiks"><path d="' + path(lim.slice(0, v.length)) + '" fill="none" stroke="#e5484d" stroke-dasharray="5 4" stroke-width="1.5"/><path d="' + path(v) + '" fill="none" stroke="#3b5bdb" stroke-width="2"/></svg><p class="note">Zils — ātrums (km/h), sarkana raustīta — atļautais. Maks. ' + Math.round(max) + ' km/h.</p>';
+  }
+  function load() {
+    Promise.all([get('trips?source=eq.simulator&select=*&order=start_at.desc&limit=200'), get('cars?select=id,name,plate')]).then(function (r) {
+      var trips = r[0], cars = {}; r[1].forEach(function (c) { cars[c.id] = c; });
+      $('msg').textContent = trips.length + ' simulatora braucieni · atjaunots ' + new Date().toLocaleTimeString('lv-LV');
+      // per-car score with the same engine as the app and the insurer API
+      var by = {}; trips.forEach(function (t) { (by[t.car_id || '?'] = by[t.car_id || '?'] || []).push(t); });
+      var html = '';
+      Object.keys(by).forEach(function (cid) {
+        var ts = by[cid].map(toEngine), prof = { claims3y: 0, expHours: 0, expBuckets: {} }; E.P.expBuckets.forEach(function (b) { prof.expBuckets[b] = 0; });
+        var s = E.scoreDriver(ts, prof), c = cars[cid] || { name: 'nezināms auto' };
+        html += '<div class="row" style="justify-content:space-between;align-items:center;border-top:1px solid var(--line,#ddd);padding:8px 0"><div><b>' + esc(c.name) + '</b> <small>' + esc(c.plate || '') + '</small><br><small>' + ts.length + ' braucieni · ' + s.kpi.km.toFixed(1) + ' km</small></div><div><b style="font-size:1.4rem">' + s.total + '</b> <small>± ' + s.sigma + '</small> <span class="pill ' + cls(s.band) + '">' + bandLv[s.band] + '</span></div></div>';
+      });
+      $('cars').innerHTML = html || '<p class="note">Vēl nav neviena brauciena. Palaid <code>live.py ac … --upload</code>.</p>';
+      $('trips').innerHTML = trips.length ? '<table><tr><th>Cik sen</th><th>Auto</th><th class="num">km</th><th class="num">min</th><th class="num">Bremzēšana</th><th class="num">Paātrin.</th><th class="num">Pagriezieni</th><th class="num">Trieciens</th><th class="num">Virs limita, s</th><th>Laiks</th></tr>' +
+        trips.slice(0, 25).map(function (t) { var c = cars[t.car_id] || {}; return '<tr><td>' + ago(t.start_at) + '</td><td>' + esc(c.name || '–') + '</td><td class="num">' + t.km.toFixed(2) + '</td><td class="num">' + (t.duration_s / 60).toFixed(1) + '</td><td class="num">' + t.brake + '</td><td class="num">' + t.accel + '</td><td class="num">' + t.corner + '</td><td class="num">' + t.bump + '</td><td class="num">' + t.over_lim_s.toFixed(0) + '</td><td>' + esc(t.weather) + ' <small>(spēle)</small></td></tr>'; }).join('') + '</table>' : '';
+      if (trips[0] && lastTrace !== trips[0].id) {
+        lastTrace = trips[0].id;
+        get('trip_traces?trip_id=eq.' + encodeURIComponent(trips[0].id) + '&select=*').then(function (tr) { if (tr[0]) { $('trace').hidden = false; $('tracetitle').textContent = (cars[trips[0].car_id] || {}).name || ''; $('chart').innerHTML = chart(tr[0]); } });
+      }
+    }).catch(function (e) { $('msg').textContent = 'Kļūda ielādējot: ' + e.message; });
+  }
+  load(); setInterval(load, 5000);
+})();
+</script>
+</body>
+</html>

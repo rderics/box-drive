@@ -20,6 +20,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from dataclasses import replace
 from typing import Iterable, List, Optional
 
@@ -135,7 +136,8 @@ def print_summary(mon: LiveMonitor, cfg: Config) -> dict:
 
 
 def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: float = 0.0,
-                report: Optional[str] = None, title: str = "") -> None:
+                report: Optional[str] = None, title: str = "", record: Optional[list] = None):
+    """Returns the finished LiveMonitor (None on a source error). `record` collects every point (for --upload)."""
     mon = LiveMonitor(cfg)
     tty = sys.stdout.isatty()
     print(f"=== {title} ===  (Ctrl+C — stop and show summary)")
@@ -150,6 +152,8 @@ def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: flo
                 delay = (p.t - first_t) / speed_factor - (time.perf_counter() - wall0)
                 if delay > 0:
                     time.sleep(delay)
+            if record is not None:
+                record.append(replace(p, t=p.t - first_t))
             fresh = mon.feed(p)
             last_p = p
             for e in fresh:
@@ -166,7 +170,7 @@ def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: flo
         print("\nStopped.")
     except RuntimeError as exc:
         print(f"\nSource error: {exc}")
-        return
+        return None
     for e in mon.finish():
         print(format_event(e))
     data = print_summary(mon, cfg)
@@ -177,6 +181,7 @@ def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: flo
         with open(report, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=2)
         print(f"\nReport saved: {report}")
+    return mon
 
 
 # ────────────────────────────────── CLI ───────────────────────────────
@@ -197,6 +202,10 @@ def main(argv=None) -> None:
         p.add_argument("--report", help="save report to JSON")
         p.add_argument("--limit", type=float, help="constant speed limit, km/h")
         p.add_argument("--zones", help='path speed limit zones in meters: "0-1500:60,1500-:90"')
+        p.add_argument("--upload", action="store_true", help="send the finished trip to the OCTA database (ac and csv only)")
+        p.add_argument("--car", default="Assetto Corsa car", help="car name shown in the app (with --upload)")
+        p.add_argument("--plate", default="", help="plate / id of the car (with --upload)")
+        p.add_argument("--weather", choices=("dry", "wet", "snow", "fog"), default="dry", help="in-game weather (with --upload)")
 
     d = sub.add_parser("demo", help="synthetic trip")
     common(d)
@@ -249,7 +258,20 @@ def main(argv=None) -> None:
 
     if provider is not None:
         source = apply_limits(source, provider, override=True)
-    run_session(source, cfg, speed_factor=speed, report=args.report, title=title)
+    if args.upload and args.cmd == "demo":
+        print("--upload is for real Assetto Corsa trips only (ac, or a csv recorded from the game); demo data is synthetic.")
+        return
+    rec: Optional[list] = [] if args.upload else None
+    started = datetime.now(timezone.utc)
+    mon = run_session(source, cfg, speed_factor=speed, report=args.report, title=title, record=rec)
+    if args.upload and mon is not None:
+        if mon.last_t < 20 or mon.dist_m < 100:
+            print("\nTrip too short to upload (need at least 20 s and 100 m).")
+            return
+        import upload as up
+        payload = up.build_payload(rec, mon.events, mon.dist_m, mon.last_t, car=args.car, plate=args.plate,
+                                   limit_kmh=args.limit or 50.0, weather=args.weather, started=started)
+        up.upload(payload)
 
 
 if __name__ == "__main__":
