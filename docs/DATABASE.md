@@ -26,7 +26,7 @@ Schema: `supabase/migrations/20261028000000_init_driver_score_schema.sql` (alrea
 
 ## Next
 1. ~~App reads demo data from the database~~ ✅ done: `db.js` loads it with the public key after the first render from `data.js` (offline fallback); `node tools/test-db.js` checks the database copy scores identically to `data.js`.
-2. Ingest endpoint (Edge Function) for real trips from the collector / phone, with auth.
+2. ~~Ingest endpoint~~ ✅ done: Edge Function `ingest-trip` (auth + consent + validation) — see `docs/INGEST.md`. Still missing: the client that records and sends real trips (phone app / web collector) and a sign-in screen.
 3. Scoring job writing `score_snapshots`; insurer API returning **car** scores only.
 4. Retention job for `trip_traces`; consent checks before car-score sharing.
 
