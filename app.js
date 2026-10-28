@@ -109,6 +109,7 @@
       <p class="mute" style="margin:.2em 0">${d.note ? esc(d.note[lang]) : ''}</p>
       <div class="row" style="gap:8px;margin-top:8px"><span class="badge b-info">${t('exp_level')}: ${fmt(d.expHours, 0)} ${t('hours')} (${t('est')})</span><span class="badge b-mute">${t('conf')}: ${t(conf)}</span><span class="badge b-mute">${fmt(k.km, 0)} ${t('measured_km')}</span><span class="badge b-mute">${k.trips} ${t('trips_scored')} · ${k.excluded} ${t('trips_excl')}</span></div></div></div>
     <div class="card advice a-${c}" style="margin-top:14px"><b>${t('advice_t')}</b><p>${esc(adv.txt)}</p>${adv.gain ? `<small class="note">${t('gain')} +${fmt(adv.gain, 0)} ${t('pts')}</small>` : ''}</div>
+    <div class="card" style="margin-top:14px" id="aiadv" data-subj="${d.id}"><b>${t('ai_t')}</b><p class="note">${t('ai_load')}</p></div>
     <h2 style="margin-top:20px">KPI</h2><div class="grid g3">${cards}</div>
     <div class="grid g2" style="margin-top:14px"><div class="card"><h3>${t('trend')}</h3>${trendSvg(tw)}</div>
       <div class="card"><h3>${t('by_cond')}</h3><table><thead><tr><th></th><th class="num">km</th><th class="num">${t('harsh_per100')}</th><th class="num">${t('over_safe')}</th></tr></thead><tbody>${bw}</tbody></table></div></div>
@@ -251,6 +252,25 @@
     return `<div id="phone-root"></div><button class="demo-fab" data-demo="toggle" aria-label="Demo">⋯</button>${panel}`;
   }
   const TABS = [['app', appView], ['driver', driverView], ['insurer', insurerView], ['exp', expView], ['live', liveView], ['how', howView]];
+  /* Driver recommendation: the engine computes the numbers, the `recommend` Edge Function (Gemini, or a template when no key) writes the advice. */
+  const SB = 'https://qjakepgeqioqrmsufaty.supabase.co/functions/v1/recommend', SBK = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS';
+  S.ai = S.ai || {};
+  function aiHtml(r) {
+    const mx = Math.max(1, ...r.actions.map((a) => a.gainPoints));
+    const bars = r.actions.map((a) => `<div style="margin:8px 0"><div class="row" style="justify-content:space-between;gap:8px"><span><b>${esc(a.title)}</b></span><span class="note">+${fmt(a.gainPoints, 1)} ${t('pts')}${a.savingEur > 0 ? ` · −${a.savingEur} €` : ''}</span></div><div class="bar"><i style="width:${Math.round(a.gainPoints / mx * 100)}%;background:var(--info)"></i></div><p class="note" style="margin:4px 0 0">${esc(a.tip)}</p></div>`).join('');
+    const best = r.eur_now - r.eur_best;
+    return `<b>${t('ai_t')}</b> <span class="badge b-mute">${r.source === 'gemini' ? 'Gemini' : t('ai_tmpl')}</span><p>${esc(r.summary)}</p>${bars}
+      ${best > 0 ? `<p><b>${t('ai_best')}: ${r.eur_now} € → ${r.eur_best} € ${t('per_year')}</b> <small class="note">(${t('ill')})</small></p>` : ''}<p class="note">${esc(r.encouragement)} · ${t('ai_foot')}</p>`;
+  }
+  function loadAdvice(el) {
+    const id = el.dataset.subj, key = id + lang;
+    if (S.ai[key]) { el.innerHTML = aiHtml(S.ai[key]); return; }
+    fetch(SB, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SBK }, body: JSON.stringify({ subject_type: 'driver', id, lang }) })
+      .then((r) => r.json()).then((r) => {
+        if (!r.actions && !r.summary) throw new Error(r.error || 'no data');
+        S.ai[key] = r; const cur = $('#aiadv'); if (cur && cur.dataset.subj === id) cur.innerHTML = aiHtml(r);
+      }).catch(() => { const cur = $('#aiadv'); if (cur && cur.dataset.subj === id) cur.innerHTML = `<b>${t('ai_t')}</b><p class="note">${t('ai_err')}</p>`; });
+  }
   function render() {
     document.documentElement.lang = lang;
     $('#lang').textContent = lang === 'en' ? 'LV' : 'EN';
@@ -259,6 +279,7 @@
     $('#main').innerHTML = TABS.find(([k]) => k === S.tab)[1]();
     document.body.classList.toggle('app-mode', S.tab === 'app');
     const pr = $('#phone-root'); if (pr) Phone.mount(pr);
+    const ai = $('#aiadv'); if (ai) loadAdvice(ai);
     const f = $('#file'); if (f) f.addEventListener('change', onFile);
     const s = $('#sess'); if (s) s.addEventListener('change', (e) => { S.session = e.target.value; render(); });
     const w = $('#wx'); if (w) w.addEventListener('change', (e) => { S.weather = e.target.value; render(); });

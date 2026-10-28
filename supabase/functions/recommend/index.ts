@@ -4,9 +4,9 @@
 // POST { subject_type: 'driver'|'car', id, lang: 'lv'|'en' }  ->  { source, model, total, band, eur_now, eur_best, summary, encouragement, actions[] }
 // Access: only synthetic demo + simulator data, or the signed-in owner (Authorization: Bearer <user JWT>) for their own phone data. Cars: insurer-style aggregate.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import "https://cdn.jsdelivr.net/gh/rderics/box-drive@4c82d8f8a6a5d8697659bba840113ce0b451ff60/engine.js";
+import "https://cdn.jsdelivr.net/gh/rderics/box-drive@e3f1ee9de7328d91fb8f90365c11d3f7d956ca3d/engine.js";
 const E = (globalThis as any).Engine;
-const PARAMS_VERSION = "engine@4c82d8f";
+const PARAMS_VERSION = "engine@e3f1ee9";
 const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const HOURLY_CAP = 40;
 
