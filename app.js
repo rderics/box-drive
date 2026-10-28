@@ -15,7 +15,7 @@
   const PROFILE_DEMO = { claims3y: 0, expHours: 300, expBuckets: { city: 60, highway: 60, night: 60, badweather: 60 } };
   function allDrivers() { return D.drivers.concat(S.imports); }
   const cache = new Map();
-  function carsOf(d) { const ids = new Set(d.trips.filter((x) => x.carId).map((x) => x.carId)); return (D.cars || []).filter((c) => ids.has(c.id)); }
+  function carsOf(d) { const ids = new Set(d.trips.filter((x) => x.carId).map((x) => x.carId)); return (D.cars || []).filter((c) => ids.has(c.id) || c.mine); }
   /* car score: all trips on the car by ALL drivers + the car's own claims history; experience = km-weighted mean of its drivers */
   function carRes(car) {
     const own = new Map(), trips = [], by = {};
@@ -317,7 +317,7 @@
   });
   $('#lang').addEventListener('click', () => { lang = lang === 'en' ? 'lv' : 'en'; try { localStorage.setItem('lang', lang); } catch (e) {} render(); });
   window.App = { E, D, carsOf, carRes, allDrivers, resOf, weekly, adviceText, ring, trendSvg, speedChart, rawToTrip, t, fmt, col, P, analyze: E.analyzeTrip,
-    loadDb, lang: () => lang, state: () => S, invalidate: () => cache.clear(),
+    loadDb, reloadMine: () => DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); return info; }), lang: () => lang, state: () => S, invalidate: () => cache.clear(),
     setLang: (l) => { lang = l; try { localStorage.setItem('lang', lang); } catch (e) {} render(); } };
   /* After login the app shows ONLY the user's own data from the database (empty account -> illustrative samples). Nothing is recorded or calculated by the site itself:
      the rides come from the database (Assetto Corsa via live.py / sample seed), the site only calculates the rating from the last rides and displays it. */

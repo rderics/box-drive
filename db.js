@@ -21,7 +21,7 @@
   }
 
   function convert(rows) {
-    const cars = rows.cars.map((c) => ({ id: c.id, name: c.name, plate: c.plate, claims3y: c.claims_3y }));
+    const cars = rows.cars.map((c) => ({ id: c.id, name: c.name, plate: c.plate, claims3y: c.claims_3y, make: c.make, model: c.model, year: c.year, fuel: c.fuel, octa: c.octa_valid_until, mine: rows.mine === true }));
     const evBy = {};
     for (const e of rows.events) { const o = { i: e.t_idx, type: e.type }; if (e.g != null) o.g = e.g; if (e.data) Object.assign(o, e.data); (evBy[e.trip_id] = evBy[e.trip_id] || []).push(o); }
     const tripBy = {};
@@ -67,7 +67,7 @@
     };
     let r = await fetchAll(), seeded = false;
     if (!r.trips.length && root.Samples) { await root.Samples.seed({ url: URL, key: KEY, token: tok, driver: r.drv, cars: r.cars, demo, sampleDriver: 'martins' }); r = await fetchAll(); seeded = true; }
-    const out = convert({ drivers: [r.drv], cars: r.cars, trips: r.trips, events: r.events, traces: r.traces });
+    const out = convert({ drivers: [r.drv], cars: r.cars, trips: r.trips, events: r.events, traces: r.traces, mine: true });
     demo.cars = out.cars; demo.drivers = out.drivers;
     return { source: 'supabase', mine: true, sample: r.trips.length > 0 && r.trips.every((t) => t.source === 'sample'), seeded, trips: r.trips.length, events: r.events.length, ms: Date.now() - t0 };
   }

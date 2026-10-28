@@ -129,15 +129,15 @@
     const a = A(), x = a.carRes(car), c = a.col(x.res.total), m = money(x.res.total), others = x.drivers.filter((k) => k.d.id !== ctx.d.id).map((k) => k.d.name.split(' ')[0]);
     return `<div class="pcard"><div class="top">${car.name}</div><div class="dash"></div>
       <div class="body"><div class="carrow"><div class="thumb">${I('car')}</div><div class="facts">
-        <div><b>${car.plate}</b><small>${P('reg')}</small></div><div><b>23.10.2027 <span style="color:#7c7c84">23:59</span></b><small>${P('octa')}</small></div><div><b>${car.claims3y}</b><small>${P('hist')}</small></div></div></div></div>
+        <div><b>${car.plate}</b><small>${P('reg')}</small></div><div><b>${car.octa ? new Date(car.octa).toLocaleDateString(a.lang() === 'lv' ? 'lv-LV' : 'en-GB') : '–'}</b><small>${P('octa')}</small></div><div><b>${car.claims3y}</b><small>${P('hist')}</small></div></div></div></div>
       <div class="dash"></div>
-      <button class="chipscore" data-p="car:${car.id}">${mini(x.res.total, c)}<span style="flex:1"><b>${P('car_score')}</b><span class="new">${P('new')}</span><br><small style="color:#7c7c84">${m.discountPct > 0 ? P('octa_minus') + ' −' + m.discountPct + '% · ' + P('save') + ' ' + m.savings + ' €' : P('no_disc_yet')}${others.length ? ' · +' + others.join(', ') : ''}</small></span><span class="red">${I('chev')}</span></button></div>`;
+      ${x.trips.length === 0 ? `<div class="chipscore" style="cursor:default"><span style="flex:1"><b>${P('car_score')}</b><br><small style="color:#7c7c84">${a.lang() === 'lv' ? 'Vēl nav braucienu — rādītājs parādīsies pēc pirmā brauciena' : 'No rides yet — the score appears after the first ride'}</small></span></div>` : `<button class="chipscore" data-p="car:${car.id}">${mini(x.res.total, c)}<span style="flex:1"><b>${P('car_score')}</b><span class="new">${P('new')}</span><br><small style="color:#7c7c84">${m.discountPct > 0 ? P('octa_minus') + ' −' + m.discountPct + '% · ' + P('save') + ' ' + m.savings + ' €' : P('no_disc_yet')}${others.length ? ' · +' + others.join(', ') : ''}</small></span><span class="red">${I('chev')}</span></button>`}</div>`;
   }
   function cars() {
     const { d } = data();
     return `<h1>${P('tab_cars')}<span style="color:#7c7c84">${I('bell', 26)}</span></h1>${mycars(d).map((c) => carCard(c, { d })).join('')}
     <div class="pcard"><div class="body" style="display:flex;gap:12px;align-items:center"><span class="red">${I('bell', 24)}</span><div style="font-size:14.5px;line-height:1.4"><b>${P('weekly')}</b><br><span style="color:#7c7c84">${P('weekly_txt')}</span></div></div></div>
-    <div style="height:70px"></div><div class="fab"><button class="pbtn">+ ${P('plus_car')}</button></div>`;
+    <div style="height:70px"></div><div class="fab"><button class="pbtn" data-p="addcar">+ ${P('plus_car')}</button></div>`;
   }
   function planEur(d, pts) { // driver improvement -> effect on each of the driver's cars, in proportion to the driver's share of that car
     const a = A(); let eur = 0;
@@ -299,8 +299,45 @@
     <div class="sec">${P('set')}</div>${li('bell', P('notif'), '<button class="sw"></button>')}${li('globe', P('lang') + ': ' + (a.lang() === 'lv' ? 'LV' : 'EN'), `<button class="pbtn sm out" data-p="lang">${a.lang() === 'lv' ? 'EN' : 'LV'}</button>`)}
     <div class="sec">${P('about')}</div>${li('news', P('news'))}${li('mail', P('contact'))}<div class="sec" style="margin-top:26px">${P('ver')}</div><p class="disc" style="text-align:left;margin:6px 0 0">${P('disc')}</p>`;
   }
+
+  /* ---- "+ Add car": saves a new car for the SIGNED-IN user (cars.created_by = user id, linked to the driver); no CSDD register, so the data is self-declared ---- */
+  const CAR_FUEL = { petrol: ['benzīns', 'petrol'], diesel: ['dīzelis', 'diesel'], hybrid: ['hibrīds', 'hybrid'], phev: ['pieslēdzamais hibrīds', 'plug-in hybrid'], electric: ['elektro', 'electric'], lpg: ['gāze', 'LPG'], other: ['cits', 'other'] };
+  function carForm() {
+    const lv = A().lang() === 'lv', f = st.form || {}, v = (k) => String(f[k] == null ? '' : f[k]).replace(/"/g, '&quot;'), L = (a, b) => (lv ? a : b);
+    const inp = (id, label, ph, type, extra) => `<label style="display:block;margin:8px 0 0;font-size:13px;color:#7c7c84">${label}<input id="pc_${id}" type="${type || 'text'}" value="${v(id)}" placeholder="${ph || ''}" ${extra || ''} style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:10px 12px;font:inherit;font-size:16px;color:#1a1a1f;border:1px solid #d9d9df;border-radius:10px;background:#fff"></label>`;
+    const fuel = `<label style="display:block;margin:8px 0 0;font-size:13px;color:#7c7c84">${L('Degviela', 'Fuel')}<select id="pc_fuel" style="display:block;width:100%;margin-top:3px;padding:10px 12px;font:inherit;font-size:16px;border:1px solid #d9d9df;border-radius:10px;background:#fff"><option value="">–</option>${Object.keys(CAR_FUEL).map((k) => `<option value="${k}" ${f.fuel === k ? 'selected' : ''}>${CAR_FUEL[k][lv ? 0 : 1]}</option>`).join('')}</select></label>`;
+    return `<div class="sheetbg"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${L('Pievienot auto', 'Add a car')}</h3>
+      <p style="margin:2px 0 6px;font-size:13px;color:#7c7c84;line-height:1.4">${L('Auto tiks piesaistīts tavam kontam (e-pasts). CSDD datiem nav piekļuves, tāpēc dati ir pašdeklarēti.', 'The car is attached to your account (e-mail). There is no CSDD access, so the data is self-declared.')}</p>
+      ${inp('plate', L('Numura zīme*', 'Plate*'), 'AB1234', 'text', 'maxlength="10" autocapitalize="characters"')}${inp('make', L('Marka*', 'Make*'), 'Mercedes-Benz', 'text', 'maxlength="30"')}${inp('model', L('Modelis*', 'Model*'), '190E', 'text', 'maxlength="30"')}
+      ${inp('year', L('Izlaiduma gads', 'Year'), '1991', 'number', 'min="1950" max="2027"')}${fuel}${inp('kw', L('Jauda, kW', 'Power, kW'), '173', 'number', 'min="0" max="1500"')}${inp('cc', L('Dzinēja tilpums, cm³', 'Engine, cc'), '2463', 'number', 'min="0" max="10000"')}
+      ${inp('odo', L('Nobraukums, km', 'Odometer, km'), '', 'number', 'min="0"')}${inp('octa', L('OCTA derīga līdz', 'OCTA valid until'), '', 'date')}${inp('claims', L('Negadījumi pēdējos 3 gados', 'Claims in the last 3 years'), '0', 'number', 'min="0" max="20"')}
+      <p style="color:#d9432e;font-size:14px;margin:10px 0 0;min-height:18px">${st.formMsg || ''}</p>
+      <button class="pbtn" data-p="savecar" ${st.saving ? 'disabled' : ''} style="margin-top:6px">${st.saving ? L('Saglabā…', 'Saving…') : L('Saglabāt auto', 'Save car')}</button><div style="height:10px"></div><button class="pbtn out" data-p="closecar">${L('Atcelt', 'Cancel')}</button></div></div>`;
+  }
+  function readCarForm() { const g = (k) => { const e = document.getElementById('pc_' + k); return e ? e.value.trim() : ''; }; return { plate: g('plate').toUpperCase().replace(/[^A-Z0-9-]/g, ''), make: g('make'), model: g('model'), year: g('year'), fuel: g('fuel'), kw: g('kw'), cc: g('cc'), odo: g('odo'), octa: g('octa'), claims: g('claims') }; }
+  async function saveCar() {
+    const a = A(), lv = a.lang() === 'lv', f = readCarForm(); st.form = f; st.formMsg = '';
+    if (!f.plate || !f.make || !f.model) { st.formMsg = lv ? 'Ievadi numuru, marku un modeli.' : 'Enter plate, make and model.'; return render(); }
+    const me = window.Auth && Auth.user(), tok = me && await Auth.token(), d = a.D.drivers[0];
+    if (!tok || !d) { st.formMsg = lv ? 'Vispirms pieraksties.' : 'Please log in first.'; return render(); }
+    st.saving = true; render();
+    const n = (x) => (x === '' ? null : Number(x)), t = (x) => (x === '' ? null : x), id = 'c-' + d.id.replace(/^u-/, '') + '-' + Array.from(crypto.getRandomValues(new Uint8Array(4))).map((x) => ('0' + x.toString(16)).slice(-2)).join('');
+    const H = { apikey: Auth.KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=minimal' };
+    const post = (table, row) => fetch(Auth.URL + '/rest/v1/' + table, { method: 'POST', headers: H, body: JSON.stringify(row) }).then((r) => r.text().then((x) => { if (!r.ok) { let j = {}; try { j = JSON.parse(x); } catch (e) {} throw new Error(j.message || String(r.status)); } }));
+    try {
+      await post('cars', { id, name: (f.make + ' ' + f.model).slice(0, 40), plate: f.plate, make: f.make, model: f.model, year: n(f.year), fuel: t(f.fuel), engine_cc: n(f.cc), power_kw: n(f.kw), odometer_km: n(f.odo), octa_valid_until: t(f.octa), claims_3y: n(f.claims) || 0, is_demo: false, created_by: me.uid });
+      await post('driver_cars', { driver_id: d.id, car_id: id });
+      st.addCar = false; st.saving = false; st.form = null; st.formMsg = ''; st.tab = 'cars';
+      await a.reloadMine();
+    } catch (e) {
+      st.saving = false;
+      st.formMsg = /duplicate|unique|23505/i.test(e.message) ? (lv ? 'Šāds numurs jau ir pievienots.' : 'This plate is already added.') : /check|violates/i.test(e.message) ? (lv ? 'Pārbaudi datus (numura zīme: burti, cipari, defise; gads 1950–2027).' : 'Check the data (plate: letters, digits, dash; year 1950–2027).') : (lv ? 'Neizdevās saglabāt: ' : 'Could not save: ') + e.message;
+      render();
+    }
+  }
   function sheet() {
     const a = A();
+    if (st.addCar) return carForm();
     if (st.kpi) {
       const r = st.car ? a.carRes(a.D.cars.find((x) => x.id === st.car)).res : data().r, k = kpis(r).find((x) => x.key === st.kpi), w = Math.round(r.weights[st.kpi]);
       return `<div class="sheetbg" data-p="close"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${a.t('k_' + st.kpi)}</h3><div style="font-size:30px;font-weight:700;color:var(--${a.col(k.s)})">${k.value}</div><div style="color:#7c7c84;margin:2px 0 8px">${k.base}</div>${mbar(k.s, a.col(k.s))}
@@ -336,6 +373,9 @@
     const el = e.target.closest('[data-p]'); if (!el) return; const [act, arg] = el.dataset.p.split(':'), a = A();
     if (act === 'stop') return; e.stopPropagation();
     if (act === 'tab') { st.tab = arg; st.trip = null; st.kpi = null; st.car = null; }
+    else if (act === 'addcar') { st.addCar = true; st.form = st.form || null; st.formMsg = ''; }
+    else if (act === 'closecar') { st.addCar = false; st.formMsg = ''; }
+    else if (act === 'savecar') { saveCar(); return; }
     else if (act === 'logout') { if (window.Auth) Auth.logout(); location.href = 'login.html'; return; }
     else if (act === 'kpi') { st.kpi = arg; st._keep = true; }
     else if (act === 'trip') { st.trip = arg; st.ev = null; }
