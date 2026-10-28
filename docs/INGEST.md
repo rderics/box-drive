@@ -26,5 +26,21 @@ Samples are **speed and lateral g only** — no GPS coordinates are accepted or 
 - `source` is **always `phone`** (a client cannot create public/synthetic rows); values are range-checked; max 500 events, 20,000 samples, 3 MB, 500 trips/day.
 - Idempotent per `trip.id` (re-upload replaces events and trace). Rows are visible only to their owner (and, later, as **car-level** scores to the insurer through server-side code).
 
+## Update 28.10 (v2) — no sign-in screen, car, real weather
+**Device account (`device-register`).** The app calls `POST /functions/v1/device-register` with `{device_id}` (random id generated once on the device). The function creates an anonymous, device-bound Supabase Auth user (`d-…@device.invalid`) and returns credentials that stay on the device; the app then signs in with password silently — the user never sees a login. Capped at 300 registrations/hour. Cleaner later: enable Supabase *anonymous sign-ins* and delete this function.
+
+**New body fields**
+```json
+{ "car": { "name": "VW Golf", "plate": "EB 4821" },
+  "location": { "lat": 56.95, "lon": 24.11 },
+  "trip": { "…": "…", "car_id": "omitted → created from car{} on first use" } }
+```
+- `car`: creates a car (`cars.created_by` = user, link in `driver_cars`) and uses it for the trip; later trips send the returned `car_id`.
+- `location`: coarse only; the function rounds it to 2 decimals (~1 km), looks up **Open-Meteo** for the trip's time window and **never stores the coordinates**. Overrides client `weather`.
+- Response now includes `weather` (`class`, `temp_c`, `precip_mm`, `snow_cm`, `visibility_m`, `wmo_code`, `ice_risk`, `src`), stored in `trips.temp_c … trips.ice_risk` and `weather_src`.
+
+## Insurer view — `car-scores`
+`GET /functions/v1/car-scores?source=all|phone|synthetic` with header `x-api-key` (hash stored in `api_keys`, role `insurer|admin`). Returns **one score per car** (score, ± uncertainty, band, reliability, KPIs, effective weights, illustrative premium) and only a driver **count**. Each call writes `score_snapshots` rows (`subject_type='car'`, `params_version` = pinned engine commit). Verified 28.10: no key / wrong key → 401; engine@f44546e weights 26/12/18/10/10/14/dynamic.
+
 **Try it:** `node tools/ingest-demo.js <email> <password>` (a user must exist in Supabase Auth) — signs in, records consent, uploads one demo trip.
 Verified 28.10: anon → 401; user without consent → 403; with consent → 200 (4 events + trace stored, `source=phone`, a client-supplied `source:"synthetic"` ignored); the uploaded trip is invisible to anon and the public demo stays at 117 trips. Test user and rows were deleted afterwards.
