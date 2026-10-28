@@ -24,6 +24,9 @@
     weights: { speeding: 25, phone: 20, smooth: 20, claims: 15, nightfatigue: 10, experience: 10 },
     // KPI -> 0..100 mappings: value at which the KPI score hits 0
     zero: { overSafePct: 12, phonePerHour: 2.0, harshPer100: 5, claims: 3 },
+    // experience matters most while there is little else to go on (risk is concentrated in the first hundreds of hours);
+    // its weight = base + extra * exp(-hours/tau): ~35 % for a brand-new driver, ~19 % at 150 h, ~11 % at 800 h. Other weights are scaled to keep the sum at 100.
+    expWeightBase: 10, expWeightExtra: 25, expWeightTau: 150,
     expTauHours: 200,                // experience saturates around a few hundred hours — assumption
     expBuckets: ['city', 'highway', 'night', 'badweather'],
     premiumBase: 300,                // illustrative yearly premium, EUR — NOT a Balcia pricing model
@@ -163,13 +166,14 @@
       nightfatigue: clamp(100 - 150 * k.nightShare - 20 * k.fatigue, 0, 100),
       experience: 100 * (1 - Math.exp(-effHours / P.expTauHours)),
     };
-    let total = 0; const W = P.weights; let wsum = 0;
-    for (const key in W) { total += W[key] * s[key]; wsum += W[key]; }
-    total = total / wsum;
+    const wExp = P.expWeightBase + P.expWeightExtra * Math.exp(-effHours / P.expWeightTau), f = (100 - wExp) / (100 - P.weights.experience);
+    const W = {}; for (const k in P.weights) W[k] = k === 'experience' ? wExp : P.weights[k] * f;
+    let total = 0; for (const key in W) total += W[key] * s[key];
+    total = total / 100;
     // uncertainty: little measured driving and little experience -> wider band
     const sigma = 3 + 14 * Math.exp(-km / 500) + 6 * (1 - s.experience / 100);
     const band = total >= 80 ? 'low' : total >= 60 ? 'medium' : 'high';
-    return { kpi: k, byWeather, scores: s, total: r1(total), sigma: r1(sigma), band, diversity, effHours: r1(effHours), expHours, claims };
+    return { kpi: k, byWeather, weights: W, scores: s, total: r1(total), sigma: r1(sigma), band, diversity, effHours: r1(effHours), expHours, claims };
   }
 
   function premiumPreview(total) { // illustrative only: 0 % off at 50 points, -25 % at 100 (voluntary telematics discount, never a surcharge)
@@ -180,7 +184,7 @@
 
   /* Advice: the changeable KPI that costs the most weighted points; returns a key + parameters, the UI turns it into text. */
   function advice(res, trips) {
-    const W = P.weights, s = res.scores;
+    const W = res.weights || P.weights, s = res.scores;
     const cand = ['speeding', 'phone', 'smooth', 'nightfatigue'].map(key => ({ key, loss: W[key] * (100 - s[key]) / 100 }));
     cand.sort((a, b) => b.loss - a.loss);
     const top = cand[0];

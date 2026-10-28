@@ -140,7 +140,7 @@
     return eur;
   }
   function plan(r, d) {
-    const a = A(), W = a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon' };
+    const a = A(), W = r.weights || a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon' };
     return ['speeding', 'phone', 'smooth', 'nightfatigue'].map((k) => {
       const pts = W[k] * (100 - r.scores[k]) / 100;
       return { k, pts, eur: d ? planEur(d, pts) : money(r.total).eur - money(Math.min(100, r.total + pts)).eur, tip: P(tip[k]), icon: ic[k] };
@@ -289,7 +289,7 @@
   function sheet() {
     const a = A();
     if (st.kpi) {
-      const r = st.car ? a.carRes(a.D.cars.find((x) => x.id === st.car)).res : data().r, k = kpis(r).find((x) => x.key === st.kpi), w = a.P.weights[st.kpi];
+      const r = st.car ? a.carRes(a.D.cars.find((x) => x.id === st.car)).res : data().r, k = kpis(r).find((x) => x.key === st.kpi), w = Math.round(r.weights[st.kpi]);
       return `<div class="sheetbg" data-p="close"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${a.t('k_' + st.kpi)}</h3><div style="font-size:30px;font-weight:700;color:var(--${a.col(k.s)})">${k.value}</div><div style="color:#7c7c84;margin:2px 0 8px">${k.base}</div>${mbar(k.s, a.col(k.s))}
         <p style="margin:14px 0 6px;line-height:1.45">${a.t('c_' + st.kpi)}</p><table><tr><td>${P('weight')}</td><td>${w}%</td></tr><tr><td>${a.t('k_' + st.kpi)}</td><td>${a.fmt(k.s, 0)} / 100</td></tr></table>
         <div style="margin-top:14px"><button class="pbtn" data-p="close">OK</button></div></div></div>`;

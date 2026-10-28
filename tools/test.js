@@ -44,3 +44,9 @@ console.log('all engine tests passed');
 const p50 = E.premiumPreview(50), p80 = E.premiumPreview(80), p100 = E.premiumPreview(100), p20 = E.premiumPreview(20);
 assert.strictEqual(p20.eur, p50.eur); assert(p80.eur < p50.eur && p100.eur < p80.eur); assert.strictEqual(p100.discountPct, 25);
 console.log('premium tests passed');
+
+// 9. experience weight: bigger for a brand-new driver, fades with hours; all weights sum to 100
+const rn = E.scoreDriver([], { expHours: 0 }), rv = E.scoreDriver([], { expHours: 5000, expBuckets: { city: 900, highway: 900, night: 900, badweather: 900 } });
+assert(rn.weights.experience > 30 && rv.weights.experience < 12 && rn.weights.experience > rv.weights.experience);
+for (const r of [rn, rv]) assert(Math.abs(Object.values(r.weights).reduce((a, b) => a + b, 0) - 100) < 1e-9, 'weights sum to 100');
+console.log('experience weight tests passed');

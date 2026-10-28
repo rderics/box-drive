@@ -79,8 +79,9 @@
   }
 
   /* ---------- views ---------- */
+  let curW = null;
   function kpiCard(key, value, base, ctx, score) {
-    return `<div class="card kpi"><div class="row" style="justify-content:space-between;align-items:center"><b>${t('k_' + key)}</b><span class="w">${P.weights[key]}% ${t('weight')}</span></div>
+    return `<div class="card kpi"><div class="row" style="justify-content:space-between;align-items:center"><b>${t('k_' + key)}</b><span class="w">${fmt((curW || P.weights)[key], 0)}% ${t('weight')}</span></div>
       <div class="v" style="color:${cvar(col(score))}">${value}</div><div class="base">${base}</div>${bar(score)}<small class="note">${ctx}</small></div>`;
   }
   function driverView() {
@@ -88,6 +89,7 @@
     const ratio = (v, a) => (a > 0 ? `${t('times')}${fmt(v / a)} ${t('avg')}` : '');
     const conf = r.sigma <= 7 ? 'conf_high' : r.sigma <= 12 ? 'conf_mid' : 'conf_low';
     const adv = adviceText(r, d);
+    curW = r.weights;
     const cards = [
       kpiCard('speeding', fmt(k.overSafePct) + '%', `${t('avg')}: ${A.overSafePct}% · ${ratio(k.overSafePct, A.overSafePct)}`, t('c_speeding'), r.scores.speeding),
       kpiCard('phone', fmt(k.phonePerHour) + ' ' + t('perh'), `${t('avg')}: ${A.phonePerHour} · ${ratio(k.phonePerHour, A.phonePerHour)}`, t('c_phone'), r.scores.phone),
@@ -132,7 +134,7 @@
   function insurerView() {
     const cs = (D.cars || []).map((c) => ({ c, x: carRes(c) })).sort((a, b) => b.x.res.total - a.x.res.total);
     const rows = cs.map(({ c, x }) => {
-      const r = x.res, beh = (['speeding', 'phone', 'smooth', 'nightfatigue'].reduce((s, k) => s + P.weights[k] * r.scores[k], 0)) / (25 + 20 + 20 + 10), pr = E.premiumPreview(r.total), cc = col(r.total);
+      const r = x.res, bw = ['speeding', 'phone', 'smooth', 'nightfatigue'], beh = bw.reduce((s, k) => s + r.weights[k] * r.scores[k], 0) / bw.reduce((s, k) => s + r.weights[k], 0), pr = E.premiumPreview(r.total), cc = col(r.total);
       return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
         <td><b style="color:${cvar(cc)}">${fmt(r.total, 0)}</b> <small>± ${fmt(r.sigma, 0)}</small></td><td><span class="badge b-${cc}">${t('band_' + r.band)}</span></td>
         <td style="min-width:110px">${bar(beh)}</td><td style="min-width:90px">${bar(r.scores.claims)}</td><td class="num">${pr.eur} € <small>−${pr.discountPct}%</small></td></tr>`;
@@ -188,7 +190,7 @@
     const flow = [['f_data', 'f_data2'], ['f_metric', 'f_metric2'], ['f_kpi', 'f_kpi2'], ['f_score', 'f_score2'], ['f_dec', 'f_dec2']].map((x) => `<div><b>${t(x[0])}</b>${t(x[1])}</div>`).join('<div class="arr">→</div>');
     const wl = Object.keys(W).map((k) => `<div style="margin:8px 0"><div class="row" style="justify-content:space-between"><span>${t('k_' + k)}</span><b>${W[k]}%</b></div>${bar((W[k] / tot) * 100 * 3, 'brand')}</div>`).join('');
     return `<h2>${t('how_title')}</h2><p class="mute">${t('how_sub')}</p><div class="flow">${flow}</div>
-    <div class="grid g2" style="margin-top:14px"><div class="card"><h3>${t('weights')}</h3>${wl}</div>
+    <div class="grid g2" style="margin-top:14px"><div class="card"><h3>${t('weights')}</h3>${wl}<p class="note">${t('w_dyn')}</p></div>
       <div class="card"><h3>${t('track_yes')}</h3><ul>${t('yes_list').map((x) => `<li>${x}</li>`).join('')}</ul><h3 style="margin-top:14px">${t('track_no')}</h3><ul>${t('no_list').map((x) => `<li>${x}</li>`).join('')}</ul></div></div>
     <div class="grid g3" style="margin-top:14px"><div class="card flat"><b>${t('reqs')}</b><ul><li>${t('req1')}</li><li>${t('req2')}</li><li>${t('req3')}</li></ul></div>
       <div class="card flat"><b>${t('roadmap')}</b><ul>${t('rm').map((x) => `<li>${x}</li>`).join('')}</ul></div>
