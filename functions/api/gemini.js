@@ -38,16 +38,19 @@ export async function onRequestPost({ request, env }) {
   };
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 25000);
   const call = (m) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(payload), signal: ctl.signal });
-  // models get renamed/retired: on 404 ask the API which models this key can use and take the newest "flash" (not lite/image/tts/live) that supports generateContent
-  const pick = async () => {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key }, signal: ctl.signal }); if (!r.ok) return null;
+  // models get renamed/retired or overloaded: ask the API which "flash" models (not lite/image/tts/live) this key can use, newest first,
+  // and try up to three of them on 404 / 429 / 5xx
+  const list = async () => {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key }, signal: ctl.signal }); if (!r.ok) return [];
     const j = await r.json(), ok = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /^models\/gemini-[\d.]+-flash(-\d+)?$/.test(m.name));
     const ver = (n) => Number((n.match(/gemini-([\d.]+)-flash/) || [0, 0])[1]);
-    ok.sort((a, b) => ver(b.name) - ver(a.name)); return ok.length ? ok[0].name.replace('models/', '') : null;
+    ok.sort((a, b) => ver(b.name) - ver(a.name)); return ok.map((m) => m.name.replace('models/', ''));
   };
   try {
-    let r = await call(model);
-    if (r.status === 404) { const alt = await pick(); if (alt && alt !== model) { model = alt; r = await call(alt); } }
+    let r = await call(model), tried = [model];
+    if (r.status === 404 || r.status === 429 || r.status >= 500) {
+      for (const alt of await list()) { if (tried.includes(alt) || tried.length >= 3) continue; tried.push(alt); const r2 = await call(alt); if (r2.ok || r2.status === 402 || r2.status === 400 || r2.status === 403) { r = r2; model = alt; break; } r = r2; model = alt; }
+    }
     if (!r.ok) { let d = ''; try { const e = await r.json(); d = String((e.error && e.error.message) || '').slice(0, 220); } catch (x) {} return out({ error: 'gemini_http_' + r.status, model, detail: d }, 502); }
     const j = await r.json(), txt = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
     if (!txt) return out({ error: 'gemini_empty' }, 502);
