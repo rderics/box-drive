@@ -4,16 +4,49 @@
 // POST { subject_type: 'driver'|'car', id, lang: 'lv'|'en' }  ->  { source, model, total, band, eur_now, eur_best, summary, encouragement, actions[] }
 // Access: only synthetic demo + simulator data, or the signed-in owner (Authorization: Bearer <user JWT>) for their own phone data. Cars: insurer-style aggregate.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import "https://cdn.jsdelivr.net/gh/rderics/box-drive@e3f1ee9de7328d91fb8f90365c11d3f7d956ca3d/engine.js";
+import "https://cdn.jsdelivr.net/gh/rderics/box-drive@4c82d8f8a6a5d8697659bba840113ce0b451ff60/engine.js";
 const E = (globalThis as any).Engine;
-const PARAMS_VERSION = "engine@e3f1ee9";
+const PARAMS_VERSION = "engine@4c82d8f";
 const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
-const HOURLY_CAP = 40;
+const HOURLY_CAP = 60;
+const JEV_MODEL = Deno.env.get("JEV_MODEL") ?? "jev-1.13.0";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const sha256 = async (s: string) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))).map((b) => b.toString(16).padStart(2, "0")).join("");
 const FACTORS = ["speeding", "smooth", "phone", "nightfatigue"];
+
+// Jev (TypeSafe AI "System One" model): NOT a text generator. It answers typed questions about a text state with calibrated confidence.
+// Here it does the DATA ANALYSIS step: which habit should this driver change first, and how risky does the pattern look. The engine's numbers stay authoritative.
+const WHAT: Record<string, string> = {
+  speeding: "driving above the safe speed for the conditions",
+  smooth: "harsh braking, acceleration and cornering",
+  phone: "handling the phone while the car is moving",
+  nightfatigue: "night driving and long drives without a break",
+};
+async function jev(facts: any, wi: any[]): Promise<{ start_here: string; start_conf: number; risk_score: number | null; risk_conf: number | null; model: string } | null> {
+  const key = Deno.env.get("TYPESAFE_API_KEY"); if (!key || !wi.length) return null;
+  const n = facts.now;
+  const state = `Telematics summary of one driver over ${facts.km} km and ${facts.trips} trips. Overall score ${facts.score} out of 100. ` +
+    `Share of driving time over the safe speed: ${n.overSafePct} percent (average driver 6). Harsh events per 100 km: ${n.harshPer100km} (average 1.0). ` +
+    `Phone handling per hour of driving: ${n.phonePerHour} (average 0.6). Night driving share: ${n.nightSharePct} percent (average 10). Long drives without a break: ${n.longDrivesWithoutBreak}.`;
+  const criteria: Record<string, string> = {}; for (const x of wi) criteria[x.factor ?? x.key] = `The most realistic first change for this driver is to reduce ${WHAT[x.key]}`;
+  const body = {
+    model: JEV_MODEL, state,
+    questions: {
+      start_here: { type: "choice", instructions: "Which single habit should this driver change first to lower their insurance price most easily?", criteria },
+      risk_level: { type: "score", instructions: "How risky does this driving pattern look overall?", criteria: ["Low risk, safe habits", "Moderate risk, some habits to fix", "High risk, several clearly risky habits"] },
+    },
+  };
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch("https://api.typesafe.ai/v1/systemone", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + key }, body: JSON.stringify(body), signal: ctl.signal });
+    if (!r.ok) throw new Error("jev " + r.status);
+    const j = await r.json(), a = j?.answers ?? {};
+    if (a.start_here?.type !== "choice" || !(a.start_here.choice in criteria)) return null;
+    return { start_here: a.start_here.choice, start_conf: +(a.start_here.confidence ?? 0), risk_score: a.risk_level?.score ?? null, risk_conf: a.risk_level?.confidence ?? null, model: j.model ?? JEV_MODEL };
+  } finally { clearTimeout(to); }
+}
 
 const T: Record<string, Record<string, Record<string, string>>> = {
   lv: {
@@ -99,18 +132,24 @@ Deno.serve(async (req: Request) => {
     };
     const base = { total: res.total, band: res.band, uncertainty: res.sigma, eur_now: pr.eur, eur_best: best.eur, base_eur: pr.base, params_version: PARAMS_VERSION, illustrative: true };
 
+    let jv: any = null;
     // template answer (also the fallback)
     const tmpl = (note: string) => ({
-      ...base, source: "template", note, model: null, summary: SUMMARY[lang](res.band), encouragement: ENCOURAGE[lang],
+      ...base, source: "template", note, jev: jv, model: null, summary: SUMMARY[lang](res.band), encouragement: ENCOURAGE[lang],
       actions: wi.map((x: any) => ({ factor: x.key, ...T[lang][x.key], gainPoints: x.gainPoints, savingEur: x.savingEur, scoreNow: x.scoreNow, scoreTarget: x.scoreTarget })),
     });
     if (!wi.length) return json({ ...tmpl("nothing to improve"), summary: lang === "lv" ? "\u0160obr\u012bd nav ko uzlabot \u2014 turpini t\u0101pat." : "Nothing to improve right now \u2014 keep going." });
 
-    const key = await sha256(JSON.stringify([facts, lang, MODEL, PARAMS_VERSION]));
+    const key = await sha256(JSON.stringify([facts, lang, MODEL, PARAMS_VERSION, !!Deno.env.get("GEMINI_API_KEY"), !!Deno.env.get("TYPESAFE_API_KEY")]));
     const { data: hit } = await admin.from("ai_cache").select("response,created_at").eq("key", key).maybeSingle();
     if (hit && Date.now() - Date.parse(hit.created_at) < 864e5) return json({ ...hit.response, cached: true });
 
-    if (!Deno.env.get("GEMINI_API_KEY")) return json(tmpl("GEMINI_API_KEY not set"));
+    // step 1: Jev analyses the data (which habit first, how risky); a confident pick is moved to the top, otherwise the engine's order (biggest gain) stays
+    try { jv = await jev(facts, wi); if (jv) await admin.from("ai_calls").insert({ ok: true, note: "jev" }); } catch (e) { jv = null; await admin.from("ai_calls").insert({ ok: false, note: "jev: " + String((e as Error).message).slice(0, 100) }); }
+    if (jv && jv.start_conf >= 0.6) { const i = wi.findIndex((x: any) => x.key === jv.start_here); if (i > 0) wi.unshift(...wi.splice(i, 1)); }
+    (facts as any).actions = wi.map((x: any) => ({ factor: x.key, gainPoints: x.gainPoints, savingEuroPerYearIllustrative: x.savingEur }));
+    if (jv) (facts as any).analysis = { firstHabit: jv.start_here, riskLevelZeroToTwo: jv.risk_score };
+    if (!Deno.env.get("GEMINI_API_KEY")) { const o = tmpl("GEMINI_API_KEY not set"); if (jv) await admin.from("ai_cache").upsert({ key, subject_type: type, subject_id: id, lang, response: o }); return json(o); }
     const { count } = await admin.from("ai_calls").select("id", { count: "exact", head: true }).gte("at", new Date(Date.now() - 36e5).toISOString());
     if ((count ?? 0) >= HOURLY_CAP) return json(tmpl("hourly AI cap reached"));
 
@@ -121,7 +160,7 @@ Deno.serve(async (req: Request) => {
       if (g) {
         const tm = tmpl("");
         const acts = wi.map((x: any) => { const m = (g.actions ?? []).find((a) => a.factor === x.key), f = T[lang][x.key]; return { factor: x.key, title: clean(m?.title, f.title), tip: clean(m?.tip, f.tip), why: clean(m?.why, f.why), gainPoints: x.gainPoints, savingEur: x.savingEur, scoreNow: x.scoreNow, scoreTarget: x.scoreTarget }; });
-        out = { ...base, source: "gemini", model: MODEL, summary: clean(g.summary, tm.summary), encouragement: clean(g.encouragement, tm.encouragement), actions: acts };
+        out = { ...base, jev: jv, source: "gemini", model: MODEL, summary: clean(g.summary, tm.summary), encouragement: clean(g.encouragement, tm.encouragement), actions: acts };
       }
     } catch (e) { await admin.from("ai_calls").insert({ ok: false, note: String((e as Error).message).slice(0, 120) }); return json(tmpl("gemini error: " + String((e as Error).message).slice(0, 60))); }
     if (!out) return json(tmpl("empty gemini answer"));

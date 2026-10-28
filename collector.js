@@ -4,6 +4,14 @@
  * only so the server can look up real weather.
  */
 (function () {
+  let selCarId = '';
+  if (window.Auth && Auth.user()) Auth.token().then((t) => t && fetch(Auth.URL + '/rest/v1/cars?select=id,name,plate&created_by=eq.' + Auth.user().uid + '&order=created_at.asc', { headers: { apikey: Auth.KEY, Authorization: 'Bearer ' + t } }).then((r) => r.json()).then((cars) => {
+    const sel = document.getElementById('carSel'); if (!sel || !Array.isArray(cars)) return;
+    cars.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.plate ? c.plate + ' · ' : '') + c.name; o.dataset.n = c.name; o.dataset.p = c.plate || ''; sel.appendChild(o); });
+    const last = (() => { try { return localStorage.getItem('octa_car'); } catch (e) { return null; } })(); if (last && cars.some((c) => c.id === last)) { sel.value = last; selCarId = last; }
+    if (cars.length === 1 && !sel.value) { sel.value = cars[0].id; selCarId = cars[0].id; }
+    sel.onchange = () => { selCarId = sel.value; try { localStorage.setItem('octa_car', selCarId); } catch (e) {} };
+  })).catch(() => {});
   if (window.Limits) Limits.load().catch(function () {});   // OSM speed limits for central Riga (limits.js + riga-limits.json)
   'use strict';
   const URL = 'https://qjakepgeqioqrmsufaty.supabase.co', KEY = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS';
@@ -113,8 +121,8 @@
       const H = { apikey: KEY, Authorization: 'Bearer ' + (await token()), 'Content-Type': 'application/json' };
       const runs = []; for (const x of r.lim) { if (runs.length && runs[runs.length - 1][0] === x) runs[runs.length - 1][1]++; else runs.push([x, 1]); }
       const ph = []; let st = -1; r.phone.forEach((p, i) => { if (p && st < 0) st = i; if (!p && st >= 0) { ph.push([st, i]); st = -1; } }); if (st >= 0) ph.push([st, r.phone.length]);
-      const body = { driver_name: 'Ierīce', exp_hours: +$('expHours').value || 0, car: $('carName').value.trim() ? { name: $('carName').value.trim(), plate: $('carPlate').value.trim() || null } : undefined,
-        location: r.first ? { lat: r.first.lat, lon: r.first.lon } : undefined, trip: snake(s),
+      const body = { driver_name: 'Ierīce', exp_hours: +$('expHours').value || 0, car: selCarId ? undefined : $('carName').value.trim() ? { name: $('carName').value.trim(), plate: $('carPlate').value.trim() || null } : undefined,
+        location: r.first ? { lat: r.first.lat, lon: r.first.lon } : undefined, trip: Object.assign(snake(s), selCarId ? { car_id: selCarId } : {}),
         events: s.events.map(({ i, type, g, ...rest }) => ({ i, type, g, data: Object.keys(rest).length ? rest : undefined })),
         trace: { step: 1, v: r.v.map(Math.round), ay100: r.ay.map((a) => Math.round(a * 100)), lim_runs: runs, phone_ranges: ph } };
       const call = () => jf(`${URL}/functions/v1/ingest-trip`, { method: 'POST', headers: H, body: JSON.stringify(body) });
