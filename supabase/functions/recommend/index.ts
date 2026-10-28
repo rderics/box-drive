@@ -16,35 +16,18 @@ const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { sta
 const sha256 = async (s: string) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))).map((b) => b.toString(16).padStart(2, "0")).join("");
 const FACTORS = ["speeding", "smooth", "phone", "nightfatigue"];
 
-// Jev (TypeSafe AI "System One" model): NOT a text generator. It answers typed questions about a text state with calibrated confidence.
+// Jev (TypeSafe AI "System One" model): NOT a text generator. It answers typed questions about a text state and returns calibrated confidence.
 // Here it does the DATA ANALYSIS step: which habit should this driver change first, and how risky does the pattern look. The engine's numbers stay authoritative.
-const WHAT: Record<string, string> = {
-  speeding: "driving above the safe speed for the conditions",
-  smooth: "harsh braking, acceleration and cornering",
-  phone: "handling the phone while the car is moving",
-  nightfatigue: "night driving and long drives without a break",
-};
+// The Jev API key lives in the Cloudflare Pages project (TYPESAFE_API_KEY); this function calls the Pages Function /api/jev, which builds the Jev request from validated numbers.
+const JEV_URL = Deno.env.get("JEV_URL") ?? "https://octa-xun.pages.dev/api/jev";
 async function jev(facts: any, wi: any[]): Promise<{ start_here: string; start_conf: number; risk_score: number | null; risk_conf: number | null; model: string } | null> {
-  const key = Deno.env.get("TYPESAFE_API_KEY"); if (!key || !wi.length) return null;
-  const n = facts.now;
-  const state = `Telematics summary of one driver over ${facts.km} km and ${facts.trips} trips. Overall score ${facts.score} out of 100. ` +
-    `Share of driving time over the safe speed: ${n.overSafePct} percent (average driver 6). Harsh events per 100 km: ${n.harshPer100km} (average 1.0). ` +
-    `Phone handling per hour of driving: ${n.phonePerHour} (average 0.6). Night driving share: ${n.nightSharePct} percent (average 10). Long drives without a break: ${n.longDrivesWithoutBreak}.`;
-  const criteria: Record<string, string> = {}; for (const x of wi) criteria[x.factor ?? x.key] = `The most realistic first change for this driver is to reduce ${WHAT[x.key]}`;
-  const body = {
-    model: JEV_MODEL, state,
-    questions: {
-      start_here: { type: "choice", instructions: "Which single habit should this driver change first to lower their insurance price most easily?", criteria },
-      risk_level: { type: "score", instructions: "How risky does this driving pattern look overall?", criteria: ["Low risk, safe habits", "Moderate risk, some habits to fix", "High risk, several clearly risky habits"] },
-    },
-  };
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
+  if (!wi.length) return null;
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
   try {
-    const r = await fetch("https://api.typesafe.ai/v1/systemone", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + key }, body: JSON.stringify(body), signal: ctl.signal });
-    if (!r.ok) throw new Error("jev " + r.status);
-    const j = await r.json(), a = j?.answers ?? {};
-    if (a.start_here?.type !== "choice" || !(a.start_here.choice in criteria)) return null;
-    return { start_here: a.start_here.choice, start_conf: +(a.start_here.confidence ?? 0), risk_score: a.risk_level?.score ?? null, risk_conf: a.risk_level?.confidence ?? null, model: j.model ?? JEV_MODEL };
+    const r = await fetch(JEV_URL, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal, body: JSON.stringify({ km: facts.km, trips: facts.trips, score: facts.score, now: facts.now, factors: wi.map((x: any) => x.key) }) });
+    if (!r.ok) throw new Error("jev endpoint " + r.status);
+    const j = await r.json();
+    return j && typeof j.start_here === "string" ? j : null;
   } finally { clearTimeout(to); }
 }
 
@@ -140,7 +123,7 @@ Deno.serve(async (req: Request) => {
     });
     if (!wi.length) return json({ ...tmpl("nothing to improve"), summary: lang === "lv" ? "\u0160obr\u012bd nav ko uzlabot \u2014 turpini t\u0101pat." : "Nothing to improve right now \u2014 keep going." });
 
-    const key = await sha256(JSON.stringify([facts, lang, MODEL, PARAMS_VERSION, !!Deno.env.get("GEMINI_API_KEY"), !!Deno.env.get("TYPESAFE_API_KEY")]));
+    const key = await sha256(JSON.stringify([facts, lang, MODEL, PARAMS_VERSION, !!Deno.env.get("GEMINI_API_KEY"), true]));
     const { data: hit } = await admin.from("ai_cache").select("response,created_at").eq("key", key).maybeSingle();
     if (hit && Date.now() - Date.parse(hit.created_at) < 864e5) return json({ ...hit.response, cached: true });
 

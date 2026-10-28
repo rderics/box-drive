@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: POST /api/jev — the DATA-ANALYSIS step of the driver advice, done by Jev (TypeSafe AI "System One" model).
 // Jev is not a text generator: it answers typed questions about a text state and returns calibrated confidence. The API key lives ONLY in this
-// Pages project's environment (variable TYPESAFE_API_KEY; JEV_API_KEY / JEV_KEY are accepted as aliases) and never reaches the browser or the repo.
+// Pages project's environment (any variable whose name contains JEV or TYPESAFE, e.g. TYPESAFE_API_KEY) and never reaches the browser or the repo.
 // The endpoint builds the state itself from validated NUMBERS (no free text is forwarded), so it cannot be used as a general Jev proxy.
 // Body: { km, trips, score, now:{overSafePct,harshPer100km,phonePerHour,nightSharePct,longDrivesWithoutBreak}, factors:["speeding","smooth","phone","nightfatigue"] }
 // Reply: { start_here, start_conf, risk_score, risk_conf, model }
@@ -17,7 +17,7 @@ const num = (x, lo, hi) => { const n = Number(x); return Number.isFinite(n) ? Ma
 export const onRequestOptions = () => new Response(null, { headers: cors });
 
 export async function onRequestPost({ request, env }) {
-  const key = env.TYPESAFE_API_KEY || env.JEV_API_KEY || env.JEV_KEY;
+  const kn = Object.keys(env).find((n) => /jev|typesafe/i.test(n) && typeof env[n] === 'string' && env[n].length > 10 && !/model/i.test(n)), key = kn ? env[kn] : null;   // any variable named like JEV / TYPESAFE
   if (!key) return out({ error: 'jev_key_missing' }, 503);
   if (Number(request.headers.get('content-length') || 0) > 4000) return out({ error: 'too_large' }, 413);
   let b; try { b = await request.json(); } catch (e) { return out({ error: 'bad_json' }, 400); }
