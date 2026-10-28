@@ -21,9 +21,9 @@
     fatigueMinutes: 120,             // continuous driving before a break counts as fatigue
     breakMinutes: 15,
     // "average driver" bases used for the comparisons (workshop slide: 1.0 harsh brake / 100 km) — illustrative
-    AVG: { harshPer100: 1.0, overSafePct: 6, phonePerHour: 0.6, nightShare: 0.10, parkCycles: 2.0 },
-    // evidence-based revision 28.10 (CSDD 2024 in-depth investigations + BTA parking claims; see docs/WEIGHTS.md): speed up, phone down (no local evidence), others as before
-    weights: { speeding: 26, phone: 12, smooth: 18, claims: 14, nightfatigue: 10, parking: 10, experience: 10 },
+    AVG: { harshPer100: 1.0, overSafePct: 6, phonePerHour: 0.6, nightShare: 0.10 },
+    // evidence-based revision 28.10 (CSDD 2024 in-depth investigations; see docs/WEIGHTS.md): speed up, phone down (no local evidence); parking removed 28.10 (Rinalds), its 10 points spread over the rest
+    weights: { speeding: 29, phone: 14, smooth: 20, claims: 16, nightfatigue: 11, experience: 10 },
     // KPI -> 0..100 mappings: value at which the KPI score hits 0
     zero: { overSafePct: 12, phonePerHour: 2.0, harshPer100: 5, claims: 3 },
     // experience matters most while there is little else to go on (risk is concentrated in the first hundreds of hours);
@@ -186,8 +186,6 @@
       phone: 100 * clamp(1 - k.phonePerHour / P.zero.phonePerHour, 0, 1),
       smooth: 100 * clamp(1 - k.harshPer100 / P.zero.harshPer100, 0, 1),
       claims: 100 * clamp(1 - claims / P.zero.claims, 0, 1),
-      // parking: leading indicators only (manoeuvre complexity, lot speed, sudden surges) — real contacts are too rare per driver to score
-      parking: k.parkings ? 100 * (0.45 * clamp(1 - (k.cyclesPer - 1) / 7, 0, 1) + 0.35 * clamp(1 - k.lotOverPct / 30, 0, 1) + 0.20 * clamp(1 - k.surgePer10 / 2, 0, 1)) : 100,
       nightfatigue: clamp(100 - 150 * k.nightShare - 20 * k.fatigue, 0, 100),
       experience: 100 * (1 - Math.exp(-effHours / P.expTauHours)),
     };
@@ -210,7 +208,7 @@
   /* Advice: the changeable KPI that costs the most weighted points; returns a key + parameters, the UI turns it into text. */
   function advice(res, trips) {
     const W = res.weights || P.weights, s = res.scores;
-    const cand = ['speeding', 'phone', 'smooth', 'nightfatigue', 'parking'].map(key => ({ key, loss: W[key] * (100 - s[key]) / 100 }));
+    const cand = ['speeding', 'phone', 'smooth', 'nightfatigue'].map(key => ({ key, loss: W[key] * (100 - s[key]) / 100 }));
     cand.sort((a, b) => b.loss - a.loss);
     const top = cand[0];
     const p = { key: top.key, gain: Math.round(top.loss * 10) / 10, k: res.kpi };

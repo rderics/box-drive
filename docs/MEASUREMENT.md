@@ -34,8 +34,8 @@ First trip: the app asks **once** "which car?" and binds it to the **car's Bluet
 - Not counted: phone mounted + screen on (navigation), hands-free calls, stopped at a light.
 - Accuracy differs by OS; iOS is weaker. **CSDD found no smart-device crash in its 2024 sample but says it is almost impossible to prove afterwards** → the weight is reduced (see `WEIGHTS.md`).
 
-## Parking — design + experimental
-Parking phase = slow part at trip start/end (and, with map data, inside OSM parking polygons). Scored on **leading indicators** (direction changes per parking, lot speed, sudden surges from standstill); a **possible contact** (accelerometer spike < 10 km/h; collector uses the linear acceleration of `devicemotion`) only triggers "Did you touch something?" → photo + statement. Details: `PARKING.md`.
+## Parking — removed 28.10
+Not part of the score any more (Rinalds). Old stored trips still carry lot/surge/contact counters; they are ignored by scoring and hidden in the UI. `PARKING.md` is kept only as history.
 
 ## Driver fatigue — design (proxy, not a drowsiness meter)
 A phone cannot see drowsiness. Measurable proxies, in order of strength:

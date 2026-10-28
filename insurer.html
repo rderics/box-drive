@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Apdrošinātāja skats — rādītāji pa auto</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="stylesheet" href="mini.css?v=20261028i">
+<link rel="stylesheet" href="mini.css?v=20261028k">
 </head>
 <body>
 <main class="mini" style="max-width:1000px">
@@ -35,8 +35,8 @@
       if (r.s !== 200) { $('msg').textContent = 'Kļūda ' + r.s + ': ' + (r.j.error || ''); $('out').hidden = true; return; }
       $('msg').textContent = r.j.cars.length + ' auto · ' + r.j.params_version + ' · ' + new Date(r.j.computed_at).toLocaleString('lv-LV');
       $('out').hidden = false;
-      $('out').innerHTML = '<div style="overflow-x:auto"><table><tr><th>Auto</th><th>Numurs</th><th class="num">Braucēji</th><th class="num">km</th><th>Rādītājs</th><th>Risks</th><th>Datu ticamība</th><th class="num">Ātrums virs droša, %</th><th class="num">Strauji / 100 km</th><th class="num">Telefons / h</th><th class="num">Stāvvietas manevri</th><th class="num">Prēmija (ilustr.)</th></tr>' +
-        r.j.cars.map(function (c) { return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.plate || '–') + '</td><td class="num">' + c.drivers + '</td><td class="num">' + c.km + '</td><td><b>' + c.score + '</b> <small>± ' + c.uncertainty + '</small></td><td><span class="pill ' + cls(c.band) + '">' + bandLv[c.band] + '</span></td><td>' + relLv[c.reliability] + '</td><td class="num">' + c.kpis.over_safe_pct + '</td><td class="num">' + c.kpis.harsh_per_100km + '</td><td class="num">' + c.kpis.phone_per_hour + '</td><td class="num">' + c.kpis.parking_cycles_per_parking + '</td><td class="num">' + c.premium_preview.eur + ' € <small>−' + c.premium_preview.discount_pct + '%</small></td></tr>'; }).join('') + '</table></div>';
+      $('out').innerHTML = '<div style="overflow-x:auto"><table><tr><th>Auto</th><th>Numurs</th><th class="num">Braucēji</th><th class="num">km</th><th>Rādītājs</th><th>Risks</th><th>Datu ticamība</th><th class="num">Ātrums virs droša, %</th><th class="num">Strauji / 100 km</th><th class="num">Telefons / h</th><th class="num">Prēmija (ilustr.)</th></tr>' +
+        r.j.cars.map(function (c) { return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.plate || '–') + '</td><td class="num">' + c.drivers + '</td><td class="num">' + c.km + '</td><td><b>' + c.score + '</b> <small>± ' + c.uncertainty + '</small></td><td><span class="pill ' + cls(c.band) + '">' + bandLv[c.band] + '</span></td><td>' + relLv[c.reliability] + '</td><td class="num">' + c.kpis.over_safe_pct + '</td><td class="num">' + c.kpis.harsh_per_100km + '</td><td class="num">' + c.kpis.phone_per_hour + '</td><td class="num">' + c.premium_preview.eur + ' € <small>−' + c.premium_preview.discount_pct + '%</small></td></tr>'; }).join('') + '</table></div>';
     }).catch(function (e) { $('msg').textContent = 'Tīkla kļūda: ' + e.message; });
   };
 })();

@@ -36,7 +36,6 @@
       thr: 'slieksnis', lat: 'sānu', phone_hand: 'telefons rokās', limit: 'limits',
       lot_leave: 'Izbraukšana no stāvvietas', lot_park: 'Novietošana stāvvietā', dirchg: 'virziena maiņas', ev_surge: 'Pēkšņa paātrināšanās no vietas', ev_bump: 'Iespējams pieskāriens', bump_ask: 'Vai kaut ko aizskāri?',
       bump_h: 'Iespējams pieskāriens', bump_q: 'Telefons pamanīja zema ātruma triecienu stāvvietā. Vai kaut ko aizskāri?', bump_what: 'Trieciens', bump_photo: 'Pievienot foto un sākt SP', bump_no: 'Nē (apmale / bedre)',
-      tip_parking: 'Izvēlies stāvvietu, kurā var iebraukt vienā piegājienā; izbraucot atpakaļgaitā turi gājēja ātrumu',
       week: 'nedēļa', base: 'Bāze', weight: 'svars', mode_train: 'Vilciens', mode_car: 'Auto',
     },
     en: {
@@ -73,7 +72,6 @@
       thr: 'threshold', lat: 'lateral', phone_hand: 'phone in hand', limit: 'limit',
       lot_leave: 'Leaving the parking space', lot_park: 'Parking', dirchg: 'direction changes', ev_surge: 'Sudden surge from standstill', ev_bump: 'Possible contact', bump_ask: 'Did you touch something?',
       bump_h: 'Possible contact', bump_q: 'The phone noticed a low-speed impact in the parking area. Did you touch something?', bump_what: 'Impact', bump_photo: 'Add a photo and start the statement', bump_no: 'No (kerb / pothole)',
-      tip_parking: 'Choose a space you can enter in one go; keep to walking pace when reversing out',
       week: 'week', base: 'Base', weight: 'weight', mode_train: 'Train', mode_car: 'Car',
     },
   };
@@ -119,7 +117,6 @@
       { key: 'speeding', icon: 'gauge', value: f(k.overSafePct) + '%', base: `${a.t('avg')}: ${AVG.overSafePct}% · ${ratio(k.overSafePct, AVG.overSafePct)}`, s: r.scores.speeding },
       { key: 'phone', icon: 'phone', value: f(k.phonePerHour) + ' ' + a.t('perh'), base: `${a.t('avg')}: ${AVG.phonePerHour} · ${ratio(k.phonePerHour, AVG.phonePerHour)}`, s: r.scores.phone },
       { key: 'smooth', icon: 'zap', value: f(k.harshPer100) + ' ' + a.t('per100'), base: `${a.t('avg')}: ${AVG.harshPer100} · ${ratio(k.harshPer100, AVG.harshPer100)}`, s: r.scores.smooth },
-      { key: 'parking', icon: 'park', value: f(k.cyclesPer) + ' ' + a.t('per_park'), base: `${a.t('avg')}: ${AVG.parkCycles} · ${ratio(k.cyclesPer, AVG.parkCycles)}`, s: r.scores.parking },
       { key: 'nightfatigue', icon: 'moon', value: f(k.nightShare * 100, 0) + '% · ' + k.fatigue + '×', base: `${a.t('avg')}: ${AVG.nightShare * 100}%`, s: r.scores.nightfatigue },
       { key: 'claims', icon: 'shield', value: r.claims + ' / 3 ' + a.t('yr'), base: 'LTAB', s: r.scores.claims },
     ];
@@ -148,8 +145,8 @@
     return eur;
   }
   function plan(r, d) {
-    const a = A(), W = r.weights || a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night', parking: 'tip_parking' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon', parking: 'park' };
-    return ['speeding', 'phone', 'smooth', 'nightfatigue', 'parking'].map((k) => {
+    const a = A(), W = r.weights || a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon' };
+    return ['speeding', 'phone', 'smooth', 'nightfatigue'].map((k) => {
       const pts = W[k] * (100 - r.scores[k]) / 100;
       return { k, pts, eur: d ? planEur(d, pts) : money(r.total).eur - money(Math.min(100, r.total + pts)).eur, tip: P(tip[k]), icon: ic[k] };
     }).filter((x) => x.pts >= 1).sort((x, y) => y.eur - x.eur || y.pts - x.pts).slice(0, 3);
@@ -230,7 +227,7 @@
   function keyPoints(t, tr, step) {
     const a = A(), safe = a.P.safeFactor[t.weather] || 1, thr = a.P.brakeG[t.weather] || 0.3, out = [], last = tr.v.length - 1;
     const k = (i) => Math.max(0, Math.min(last, Math.round(i / step))), g2 = (x) => a.fmt(x, 2);
-    for (const e of t.events || []) {
+    for (const e of (t.events || []).filter((x) => x.type !== 'lot' && x.type !== 'surge' && x.type !== 'bump')) {
       const j = k(e.i), v1 = tr.v[j], v0 = tr.v[Math.max(0, j - Math.max(1, Math.round(1 / step)))];
       if (e.type === 'brake') out.push({ sec: e.i, j, type: 'brake', sub: `${v0} → ${v1} km/h · −${g2(e.g)} g · ${P('thr')} ${g2(thr)} g (${a.t(t.weather).toLowerCase()})` });
       else if (e.type === 'accel') out.push({ sec: e.i, j, type: 'accel', sub: `${v0} → ${v1} km/h · +${g2(e.g)} g` });

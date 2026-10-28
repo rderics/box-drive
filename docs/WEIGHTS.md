@@ -1,6 +1,6 @@
 # Why each metric has its weight
 
-Weights in `engine.js` (`P.weights`): speeding **26** · smoothness **18** · claims **14** · phone **12** · night & fatigue **10** · parking **10** · experience **10 → 35 (dynamic, fades with hours)**; the others scale so the total is 100.
+Weights in `engine.js` (`P.weights`): speeding **29** · smoothness **20** · claims **16** · phone **14** · night & fatigue **11** · experience **10 → 35 (dynamic, fades with hours)**; the others scale so the total is 100. **Parking was removed from the score on 28.10 (Rinalds: not needed)**; its 10 points were spread over the other factors.
 
 ## Evidence base
 **CSDD, “Smago ceļu satiksmes negadījumu izpētes pilotprojekts 2024” (v2)** — in-depth investigation of **69 severe crashes (66 fatal)**; factors identified in **29 completed** cases. Factors overlap. It reports how often a factor was **present in severe crashes** (prevalence), not how much it *raises* the risk (no exposure denominator) — and fatal crashes are not the typical OCTA claim (mostly property damage). So CSDD is used for *ranking and direction*, not for exact coefficients.
@@ -12,7 +12,6 @@ Weights in `engine.js` (`P.weights`): speeding **26** · smoothness **18** · cl
 | **Claims history (14)** | CSDD examined past violations/crashes for a “driver portrait” but gives no number; strongest known predictor in insurance practice | **Assumption** | Keep 14 until insurer data validates it |
 | **Phone use (12)** | **0** crashes with smart-device use found; 2 with other distraction; authors: very hard to prove afterwards (no recordings/operator data) | **Weak (locally)** | Reduced **18 → 12**; raise only with Latvian evidence |
 | **Night & fatigue (10)** | Fatigue **5** (4 asleep/likely asleep), night / early morning, drift without braking; “actual scale not identified”; darkness dominant in pedestrian crashes | Medium | Few but severe → 10; measured by time of day + continuous driving, not harsh events |
-| **Parking (10)** | Not in CSDD. **BTA 2026:** parking CASCO claims **+22 %** in 2025, avg **€934**, max €18,392; causes: reversing, leaving a space, pedal mix-up | Medium (insurer data) | 10; leading indicators only |
 | **Experience (10 → 35)** | **10** cases of missing skills/qualification (4 no licence, 3 wrong category); wrong reaction to hazards (over-steering, swerving instead of braking); severe crashes involve all ages | Medium | Highest weight for brand-new drivers, fades as measured behaviour accumulates |
 
 ## Big factors we do **not** measure
