@@ -21,6 +21,16 @@
     <button class="btn" id="go" type="submit">Pieteikties</button>
     <p id="msg" class="note" role="status"></p>
   </form>
+  <section class="card" id="verify" hidden aria-labelledby="verifyTitle">
+    <span class="pill mid">DEMO · Smart-ID nav pieslēgts</span>
+    <h2 id="verifyTitle" style="margin-top:10px">Apstiprini pieteikšanos</h2>
+    <p>Šis ir tikai prototipa simulējums — identitāte netiek pārbaudīta un pieprasījums netiek nosūtīts uz Smart-ID.</p>
+    <p>Reālā plūsmā salīdzinātu kontroles kodu Smart-ID lietotnē. Šeit neievadi personas kodu vai PIN.</p>
+    <p>Kontroles kods: <b id="verifyCode"></b></p>
+    <button class="btn" id="approve" type="button">Simulēt apstiprinājumu</button>
+    <button class="btn ghost" id="cancelVerify" type="button">Atcelt</button>
+    <p id="verifyMsg" class="note" role="status" aria-live="polite"></p>
+  </section>
   <p class="note">Parole tiek glabāta tikai kā šifrēts jaucējkods (bcrypt) Supabase Auth datubāzē — ne mūsu tabulās, ne lapā. Prototips: e-pasta apstiprināšanas nav.</p>
 
 </main>
@@ -37,13 +47,26 @@
   $('tabIn').onclick = function () { setMode('in'); }; $('tabUp').onclick = function () { setMode('up'); };
   if (location.hash === '#signup') setMode('up');
   function go() { return Auth.token().then(function (t) { return fetch(Auth.URL + '/functions/v1/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'me' }) }); }).then(function (r) { return r.json(); }).then(function (m) { location.href = m && m.admin ? 'admin.html' : './'; }).catch(function () { location.href = './'; }); }
+  function showVerification() {
+    $('f').hidden = true; $('verify').hidden = false;
+    $('verifyCode').textContent = String(Math.floor(1000 + Math.random() * 9000));
+    $('verifyMsg').textContent = '';
+  }
+  $('approve').onclick = function () {
+    $('approve').disabled = true; $('verifyMsg').textContent = 'Demo apstiprināts. Atver kontu…';
+    go();
+  };
+  $('cancelVerify').onclick = function () {
+    Auth.logout(); $('verify').hidden = true; $('f').hidden = false;
+    $('pw').value = ''; $('msg').textContent = 'Pieteikšanās atcelta.'; $('go').disabled = false;
+  };
   if (Auth.user()) go();
   $('f').onsubmit = function (e) {
     e.preventDefault();
     if (mode === 'up' && (!$('name').value.trim() || !$('surname').value.trim())) { $('msg').textContent = 'Ievadi vārdu un uzvārdu.'; return; }
     $('go').disabled = true; $('msg').textContent = 'Lūdzu uzgaidi…';
     var p = mode === 'up' ? Auth.signup({ email: $('email').value, password: $('pw').value, name: ($('name').value.trim() + ' ' + $('surname').value.trim()).trim(), consent: $('cons').checked }) : Auth.login($('email').value, $('pw').value);
-    p.then(go).catch(function (er) { $('msg').textContent = ERR[er.message] || ('Kļūda: ' + er.message); $('go').disabled = false; });
+    p.then(function () { if (mode === 'up') go(); else showVerification(); }).catch(function (er) { $('msg').textContent = ERR[er.message] || ('Kļūda: ' + er.message); $('go').disabled = false; });
   };
 })();
 </script>
