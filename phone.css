@@ -100,3 +100,6 @@ body.app-mode main{max-width:none;padding:22px 0}
 .advbox.mid{background:var(--mid-soft);border-left-color:var(--mid)}
 .advbox.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .advbox.good b{color:var(--good)}.advbox.mid b{color:#a96a00}.advbox.bad b{color:var(--bad)}
+/* login pill on top of the in-app mock-up (the normal header is hidden there) */
+#acct2{display:none;position:fixed;top:8px;left:8px;z-index:50;padding:5px 11px;border-radius:999px;background:#fff;color:#b3282d;border:1px solid #e3b8ba;font:600 12px/1.2 system-ui,sans-serif;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+body.app-mode #acct2{display:block}
