@@ -189,6 +189,9 @@ def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: flo
 def _limit_provider(args):
     if getattr(args, "zones", None):
         return DistanceZones.parse(args.zones)
+    if getattr(args, "osm", False):
+        from osm_limits import OsmLimits
+        return OsmLimits(getattr(args, "limit", None) or 50.0)
     if getattr(args, "limit", None):
         return ConstantLimit(args.limit)
     return None
@@ -201,6 +204,7 @@ def main(argv=None) -> None:
     def common(p):
         p.add_argument("--report", help="save report to JSON")
         p.add_argument("--limit", type=float, help="constant speed limit, km/h")
+        p.add_argument("--osm", action="store_true", help="speed limits from OpenStreetMap roads of central Riga (needs real lat/lon, e.g. a csv)")
         p.add_argument("--zones", help='path speed limit zones in meters: "0-1500:60,1500-:90"')
         p.add_argument("--upload", action="store_true", help="send the finished trip to the OCTA database (ac and csv only)")
         p.add_argument("--car", default="Assetto Corsa car", help="car name shown in the app (with --upload)")

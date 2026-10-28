@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mans konts — OCTA braucēja rādītājs</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="mini.css?v=20261028n">
+</head>
+<body>
+<main class="mini" style="max-width:900px">
+  <h1>Mans konts <small id="who"></small></h1>
+  <p id="msg" class="note">Ielādē…</p>
+  <section class="card" id="score" hidden></section>
+  <section class="card" id="adv" hidden></section>
+  <section class="card" id="trips" hidden></section>
+  <div class="row" style="gap:8px"><a class="btn" href="collect.html">Sākt braucienu</a><button class="btn" id="out" type="button" style="opacity:.7">Iziet</button></div>
+  <p class="note"><a href="./">← uz demo</a> · <a href="live.html">dzīvie simulatora braucieni</a></p>
+</main>
+<script src="engine.js?v=20261028n"></script>
+<script src="auth.js?v=20261028n"></script>
+<script>
+(function () {
+  var E = window.Engine, $ = function (id) { return document.getElementById(id); }, REST = Auth.URL + '/rest/v1/';
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var bandLv = { low: 'zems risks', medium: 'vidējs risks', high: 'augsts risks' }, cls = function (b) { return b === 'low' ? 'good' : b === 'medium' ? 'mid' : 'bad'; };
+  $('out').onclick = function () { Auth.logout(); location.href = 'login.html'; };
+  var u = Auth.user(); if (!u) { location.replace('login.html'); return; }
+  $('who').textContent = (u.name || '') + ' · ' + (u.email || '');
+  function toEngine(t) { return { id: t.id, startISO: new Date(t.start_at).toISOString(), mode: t.mode, roleConf: t.role_conf, counted: t.counted, weather: t.weather, durationS: t.duration_s, km: t.km, darkKm: t.dark_km, brake: t.brake, accel: t.accel, corner: t.corner, overLimS: t.over_lim_s, overSafeS: t.over_safe_s, severeS: t.severe_s, phoneEv: t.phone_ev, phoneS: t.phone_s, parkings: t.parkings, lotCycles: t.lot_cycles, lotS: t.lot_s, lotOverS: t.lot_over_s, surge: t.surge, bump: t.bump }; }
+  Auth.token().then(function (tok) {
+    if (!tok) { location.replace('login.html'); return; }
+    var H = { apikey: Auth.KEY, Authorization: 'Bearer ' + tok };
+    var g = function (q) { return fetch(REST + q, { headers: H }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+    return g('drivers?select=id,name,exp_hours,exp_buckets,claims_3y&user_id=eq.' + encodeURIComponent(u.uid)).then(function (ds) {
+      var d = ds[0]; if (!d) throw new Error('profile');
+      return g('trips?select=*&order=start_at.desc&limit=500&driver_id=eq.' + encodeURIComponent(d.id)).then(function (trips) { return [d, trips]; });
+    }).then(function (r) {
+      var d = r[0], trips = r[1];
+      if (!trips.length) { $('msg').innerHTML = 'Vēl nav neviena brauciena. Spied <b>Sākt braucienu</b>, atstāj lapu atvērtu un brauc — kopsavilkums parādīsies šeit.'; return; }
+      $('msg').textContent = trips.length + ' braucieni · ' + new Date().toLocaleTimeString('lv-LV');
+      var prof = { claims3y: d.claims_3y || 0, expHours: Number(d.exp_hours || 0), expBuckets: d.exp_buckets || {} };
+      var res = E.scoreDriver(trips.map(toEngine), prof), pr = E.premiumPreview(res.total);
+      $('score').hidden = false;
+      $('score').innerHTML = '<div class="row" style="justify-content:space-between;align-items:center"><div><b style="font-size:2rem">' + res.total + '</b> <small>± ' + res.sigma + ' / 100</small> <span class="pill ' + cls(res.band) + '">' + bandLv[res.band] + '</span><br><small>' + res.kpi.km.toFixed(1) + ' km · ' + res.kpi.trips + ' braucieni</small></div><div style="text-align:right"><b>' + pr.eur + ' €</b> <small>−' + pr.discountPct + '% (ilustratīvi, nav Balcia cena)</small></div></div>';
+      $('adv').hidden = false; $('adv').innerHTML = '<p class="note">Gatavo padomu…</p>';
+      fetch(Auth.URL + '/functions/v1/recommend', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, H), body: JSON.stringify({ subject_type: 'driver', id: d.id, lang: 'lv' }) }).then(function (x) { return x.json(); }).then(function (a) {
+        if (!a.actions) { $('adv').innerHTML = '<p class="note">Padoms šobrīd nav pieejams.</p>'; return; }
+        $('adv').innerHTML = '<b>Kā maksāt mazāk par OCTA</b> <span class="badge b-mute">' + (a.source === 'gemini' ? 'Gemini' : 'sagataves padoms') + '</span><p>' + esc(a.summary) + '</p>' +
+          a.actions.map(function (x) { return '<p><b>' + esc(x.title) + '</b> <small>+' + x.gainPoints + ' punkti' + (x.savingEur > 0 ? ' · −' + x.savingEur + ' €' : '') + '</small><br>' + esc(x.tip) + '</p>'; }).join('') + '<p class="note">Skaitļus rēķina dzinējs; tekstu raksta MI modelis.</p>';
+      }).catch(function () { $('adv').innerHTML = '<p class="note">Padoms šobrīd nav pieejams.</p>'; });
+      $('trips').hidden = false;
+      $('trips').innerHTML = '<h3 style="margin-top:0">Braucieni</h3><div style="overflow-x:auto"><table><tr><th>Laiks</th><th class="num">km</th><th class="num">min</th><th class="num">Bremz.</th><th class="num">Paātr.</th><th class="num">Pagr.</th><th class="num">Virs limita, s</th><th>Laiks</th><th>Avots</th></tr>' +
+        trips.slice(0, 50).map(function (t) { return '<tr><td>' + new Date(t.start_at).toLocaleString('lv-LV') + '</td><td class="num">' + t.km.toFixed(2) + '</td><td class="num">' + (t.duration_s / 60).toFixed(1) + '</td><td class="num">' + t.brake + '</td><td class="num">' + t.accel + '</td><td class="num">' + t.corner + '</td><td class="num">' + t.over_lim_s.toFixed(0) + '</td><td>' + esc(t.weather) + '</td><td>' + esc(t.source) + '</td></tr>'; }).join('') + '</table></div>';
+    });
+  }).catch(function (e) { $('msg').textContent = 'Kļūda: ' + e.message + ' — mēģini pieteikties vēlreiz.'; });
+})();
+</script>
+</body>
+</html>

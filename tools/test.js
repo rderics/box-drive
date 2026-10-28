@@ -61,3 +61,9 @@ assert(wi.length > 0 && wi.every((x) => x.gainPoints > 0 && x.totalAfter > wiBad
 assert(wi.every((x, i) => i === 0 || wi[i - 1].gainPoints >= x.gainPoints), 'sorted by gain');
 assert(E.scoreDriver([], { expHours: 0 }).total >= 0);
 console.log('what-if tests passed');
+
+// 12. OSM speed limits (central Riga): a point on a mapped road gets that road's limit; a point far away gets none
+const L = require('../limits.js'), lim = require('../riga-limits.json'); L.index(lim);
+const seg = lim.segs.find((x) => x[1] === 1 && x[3].length >= 4), mid = [(seg[3][0] + seg[3][2]) / 2, (seg[3][1] + seg[3][3]) / 2], hit = L.at(mid[0], mid[1]);
+assert(hit && hit.dist <= 2 && hit.tagged, 'point on a mapped road is found'); assert(L.at(57.2, 24.9) === null, 'outside the mapped area -> null');
+console.log('speed-limit lookup tests passed');

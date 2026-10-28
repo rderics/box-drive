@@ -1,0 +1,1 @@
+`account` Edge Function (deployed from the Supabase MCP, source in the project's function list): POST { email, password, name, consent:true } creates a Supabase Auth user (password stored only as a bcrypt hash in auth.users), a `drivers` row and the `collect` consent. Login = Supabase Auth password grant, done by `auth.js`. Hourly cap 30 (`signup_log`).

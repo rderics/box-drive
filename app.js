@@ -232,7 +232,7 @@
     const lv = lang === 'lv', i = S.dbInfo;
     if (!i) return `◌ ${lv ? 'Datu avots: ielādē no datubāzes…' : 'Data source: loading from the database…'}`;
     if (i.source === 'supabase') return `● ${lv ? 'Datu avots' : 'Data source'}: Supabase (EU) · ${i.trips} ${lv ? 'braucieni' : 'trips'} · ${i.events} ${lv ? 'notikumi' : 'events'} · ${i.ms} ms`;
-    return `○ ${lv ? 'Datu avots: data.js (bezsaistē — datubāze nav pieejama)' : 'Data source: data.js (offline — database unavailable)'}`;
+    return `○ ${lv ? 'Šie ir SINTĒTISKI demo scenāriji (iebūvēti lapā). Īstie dati glabājas datubāzē un ir redzami tikai kontā.' : 'These are SYNTHETIC demo scenarios (built into the page). Real data lives in the database and is visible only in your account.'}`;
   }
   /* the app renders instantly from data.js, then swaps in the database copy; on any failure data.js stays */
   function loadDb() {
@@ -245,7 +245,8 @@
     const panel = S.demoOpen ? `<div class="demo-panel card"><div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Demo</h3><button class="chip" data-demo="toggle" aria-label="Close">✕</button></div>
       <p class="note" style="margin:8px 0 0">${dbLine()}</p>
       <h3 style="margin-top:12px">${L.persona}</h3><div class="pills">${ds.map((x) => `<button class="chip ${x.id === S.driver ? 'on' : ''}" data-persona="${x.id}">${esc(x.name)}</button>`).join('')}</div>
-      <div class="pills"><a class="chip" href="collect.html" style="text-decoration:none">${lang === 'lv' ? '📡 Braucienu vācējs' : '📡 Trip collector'}</a><a class="chip" href="insurer.html" style="text-decoration:none">${lang === 'lv' ? '🏢 Apdrošinātāja skats' : '🏢 Insurer view'}</a></div>
+      <div class="pills"><a class="chip" href="login.html" style="text-decoration:none">${lang === 'lv' ? '🔑 Pieteikties / reģistrēties' : '🔑 Log in / sign up'}</a><a class="chip" href="account.html" style="text-decoration:none">${lang === 'lv' ? '👤 Mans konts' : '👤 My account'}</a>
+      <a class="chip" href="collect.html" style="text-decoration:none">${lang === 'lv' ? '📡 Braucienu vācējs' : '📡 Trip collector'}</a><a class="chip" href="insurer.html" style="text-decoration:none">${lang === 'lv' ? '🏢 Apdrošinātāja skats' : '🏢 Insurer view'}</a></div>
       <div class="pills"><button class="chip" data-demo="onboard">${L.onboard_btn}</button><button class="chip" data-demo="lang">${lang === 'lv' ? 'EN' : 'LV'}</button></div>
       <h3>${L.views_t}</h3><div class="pills">${views.map(([k, lk]) => `<button class="chip" data-tab="${k}">${t(lk)}</button>`).join('')}</div>
       <h3>${L.what_t}</h3><ul style="margin:.3em 0 0;padding-left:1.1em;font-size:.88rem">${L.what.map((x) => `<li>${x.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</li>`).join('')}</ul></div>` : '';

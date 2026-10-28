@@ -4,6 +4,7 @@
  * only so the server can look up real weather.
  */
 (function () {
+  if (window.Limits) Limits.load().catch(function () {});   // OSM speed limits for central Riga (limits.js + riga-limits.json)
   'use strict';
   const URL = 'https://qjakepgeqioqrmsufaty.supabase.co', KEY = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS';
   const $ = (id) => document.getElementById(id), rad = Math.PI / 180, HAND_RADS = 1.0;
@@ -38,12 +39,16 @@
     if (!rec) return;
     const vk = rec.vmps * 3.6;
     rec.v.push(Math.round(vk * 10) / 10); rec.ay.push(M.n ? Math.max(-1.5, Math.min(1.5, (M.lat / M.n) / 9.81)) : 0);
-    rec.phone.push(M.tilt > HAND_RADS && vk > 5 ? 1 : 0); rec.lim.push(rec.limit); rec.lin.push(M.lin);
+    rec.phone.push(M.tilt > HAND_RADS && vk > 5 ? 1 : 0);
+    const om = rec.last && window.Limits ? Limits.at(rec.last.lat, rec.last.lon) : null;   // OSM limit of the road under the GPS fix (central Riga), else the default
+    if (om) rec.osm = (rec.osm || 0) + 1;
+    rec.lim.push(om ? om.limit : rec.limit); rec.lin.push(M.lin);
     M.n = 0; M.lat = 0; M.tilt = 0; M.lin = 0;
     $('spd').textContent = Math.round(vk); $('cnt').textContent = rec.v.length;
   }
 
   async function start() {
+    if (!(window.Auth && Auth.user())) { say('Vispirms pieraksties vai izveido kontu: login.html'); const a = document.createElement('a'); a.href = 'login.html'; a.textContent = ' → Pieteikties'; $('status').appendChild(a); return; }
     if (!$('consent').checked) { say('Vispirms atzīmē piekrišanu.'); return; }
     LS.set('consentUi', true); LS.set('carName', $('carName').value); LS.set('carPlate', $('carPlate').value); LS.set('expHours', $('expHours').value);
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') { try { await DeviceMotionEvent.requestPermission(); } catch (e) {} }
@@ -93,6 +98,9 @@
   /* ---- silent device account + upload ---- */
   async function jf(url, opt) { const r = await fetch(url, opt); const t = await r.text(); let b; try { b = JSON.parse(t); } catch (e) { b = t; } return { s: r.status, b }; }
   async function token() {
+    const at = window.Auth ? await Auth.token() : null;           // real account (login.html) — no anonymous device accounts any more
+    if (at) return at;
+    throw new Error('Nav pieteikts — pieraksties: login.html');
     let c = LS.get('device', null);
     if (!c) { const r = await jf(`${URL}/functions/v1/device-register`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }); if (!r.b.email) throw new Error('reģistrācija: ' + JSON.stringify(r.b)); c = r.b; LS.set('device', c); }
     const l = await jf(`${URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
