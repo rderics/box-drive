@@ -182,7 +182,8 @@
     <h2>${P('my_cars')} · ${P('car_score')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${carRows}</div></div>
     <h2>${P('you_driver')}</h2><p class="lead" style="font-size:14.5px;margin-bottom:10px">${P('you_lead')}</p>${scoreCard(r, c, tw)}
     <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>
-    <button class="pbtn" data-p="coach" style="margin-top:12px">✦ ${A().lang() === 'lv' ? 'AI treneris: ko uzlabot?' : 'AI coach: what to improve?'}</button>
+    <button class="pbtn out" data-p="calc" style="margin-top:12px">▶ ${A().lang() === 'lv' ? 'Kā rādītājs tiek aprēķināts' : 'How the score is calculated'}</button>
+    <button class="pbtn" data-p="coach" style="margin-top:10px">✦ ${A().lang() === 'lv' ? 'AI treneris: ko uzlabot?' : 'AI coach: what to improve?'}</button>
     ${plan(r, d).length ? `<h2>${P('save_more')}</h2>${planHtml(plan(r, d))}` : ''}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp)}</div></div>
     <h2>${P('d_exp')}</h2><div class="pcard"><div class="body"><div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:26px">${a.fmt(d.expHours, 0)}</b><span>${P('hours_wheel')}</span></div>
@@ -336,6 +337,32 @@
       render();
     }
   }
+  /* Score calculation animation: each factor scores 0-100, is multiplied by its weight, and the points add up to the total */
+  let calcT = [];
+  function calcSheet() {
+    const a = A(), { r } = data(), lv = a.lang() === 'lv', n = st.calc, W = r.weights || a.P.weights, keys = Object.keys(W).filter((k) => r.scores[k] != null), L = (x, y) => (lv ? x : y);
+    const nm = (k) => { try { return a.t('k_' + k); } catch (e) { return k; } };
+    let run = 0;
+    const rows = keys.map((k, i) => {
+      const pts = W[k] * r.scores[k] / 100, on = n > i, cur = n === i, col = a.col(r.scores[k]);
+      if (on) run += pts;
+      return `<div style="margin:11px 0;opacity:${n >= i ? 1 : .22};transition:opacity .4s"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${nm(k)}</b><span style="color:#7c7c84">${on ? L('rezultāts', 'score') + ' ' + a.fmt(r.scores[k], 0) + ' × ' + a.fmt(W[k], 0) + '%' : cur ? L('mēra…', 'measuring…') : ''}</span></div>
+        <div style="height:10px;border-radius:99px;background:#ececf1;margin:5px 0;overflow:hidden"><i style="display:block;height:100%;width:${on ? r.scores[k] : cur ? 12 : 0}%;background:var(--${col});border-radius:99px;transition:width .7s ease"></i></div>
+        <div style="text-align:right;font-weight:800;color:var(--${col});min-height:20px">${on ? '+' + a.fmt(pts, 1) : ''}</div></div>`;
+    }).join('');
+    const done = n >= keys.length, shown = done ? r.total : run, m = money(r.total);
+    return `<div class="sheetbg"><div class="sheet" data-p="stop" style="max-height:88%;overflow-y:auto"><div class="grab"></div><h3>${L('Rādītāja aprēķins', 'Score calculation')}</h3>
+      <p style="margin:0 0 4px;font-size:13px;color:#7c7c84;line-height:1.4">${L('Katrs rādītājs 0–100, reizināts ar svaru; punkti summējas.', 'Each factor scores 0–100, is multiplied by its weight, and the points add up.')}</p>
+      ${rows}
+      <div class="pcard" style="margin-top:8px"><div class="body" style="display:flex;justify-content:space-between;align-items:center"><div><small style="color:#7c7c84">${L('Kopā', 'Total')}</small><div style="font-size:44px;font-weight:800;line-height:1;color:var(--${done ? a.col(r.total) : 'brand'})">${a.fmt(shown, 0)}<span style="font-size:16px;color:#7c7c84"> / 100</span></div></div>
+        <div style="text-align:right;opacity:${done ? 1 : .2};transition:opacity .5s"><small style="color:#7c7c84">${L('OCTA cena', 'OCTA price')}</small><div style="font-size:26px;font-weight:800;color:var(--good)">${m.eur} €</div>${m.discountPct > 0 ? `<span class="pill good">−${m.discountPct}%</span>` : ''}</div></div></div>
+      <div style="height:12px"></div><button class="pbtn" data-p="calcx">${done ? 'OK' : L('Aizvērt', 'Close')}</button></div></div>`;
+  }
+  function calcRun() {
+    calcT.forEach(clearTimeout); calcT = []; const { r } = data(), W = r.weights || A().P.weights, N = Object.keys(W).filter((k) => r.scores[k] != null).length;
+    st.calc = -1; render();
+    for (let i = 0; i <= N; i++) calcT.push(setTimeout(() => { if (st.calc == null) return; st.calc = i; render(); }, 600 + i * 900));
+  }
   /* AI coach animation: Engine -> Jev (ranks the fix) -> Gemini (writes the sentence). Jev/Gemini output here is pre-written demo text; the live chain is /api/jev + /api/gemini */
   let coachT = [];
   function coachData() {
@@ -369,6 +396,7 @@
     const a = A();
     if (st.addCar) return carForm();
     if (st.coach != null) return coachSheet();
+    if (st.calc != null) return calcSheet();
     if (st.kpi) {
       const r = st.car ? a.carRes(a.D.cars.find((x) => x.id === st.car)).res : data().r, k = kpis(r).find((x) => x.key === st.kpi), w = Math.round(r.weights[st.kpi]);
       return `<div class="sheetbg" data-p="close"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${a.t('k_' + st.kpi)}</h3><div style="font-size:30px;font-weight:700;color:var(--${a.col(k.s)})">${k.value}</div><div style="color:#7c7c84;margin:2px 0 8px">${k.base}</div>${mbar(k.s, a.col(k.s))}
@@ -394,16 +422,18 @@
     if (st.onboard != null) return `<div class="device"><div class="sb">${SB}</div>${onboarding()}</div><p class="disc">${P('disc')}</p>`;
     const screen = st.trip ? tripScreen() : st.car ? carScreen() : { cars, drive, sp, more }[st.tab]();
     const tabs = [['cars', 'car'], ['drive', 'gauge'], ['sp', 'doc'], ['more', 'dots']].map(([k, ic]) => `<button class="${st.tab === k && !st.trip ? 'on' : ''}" data-p="tab:${k}">${I(ic)}<span>${P('tab_' + k)}</span>${k === 'drive' ? '<i class="dot"></i>' : ''}</button>`).join('');
-    return `<div class="device${st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null ? ' still' : ''}"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
+    return `<div class="device${st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null || st.calc != null ? ' still' : ''}"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
   }
   function render() {
     if (!root) return; const sc = root.querySelector('.scr'), y = sc ? sc.scrollTop : 0;
-    const still = !!(st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null); root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false; if (!still && window.App && App.animateIn) App.animateIn(root);
+    const still = !!(st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving || st.coach != null || st.calc != null); root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false; if (!still && window.App && App.animateIn) App.animateIn(root);
   }
   function onClick(e) {
     const el = e.target.closest('[data-p]'); if (!el) return; const [act, arg] = el.dataset.p.split(':'), a = A();
     if (act === 'stop') return; e.stopPropagation();
     if (act === 'tab') { st.tab = arg; st.trip = null; st.kpi = null; st.car = null; }
+    else if (act === 'calc') { calcRun(); return; }
+    else if (act === 'calcx') { calcT.forEach(clearTimeout); st.calc = null; }
     else if (act === 'coach') { coachRun(); return; }
     else if (act === 'coachx') { coachT.forEach(clearTimeout); st.coach = null; }
     else if (act === 'addcar') { st.addCar = true; st.form = st.form || null; st.formMsg = ''; }
