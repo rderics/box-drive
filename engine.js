@@ -22,7 +22,8 @@
     breakMinutes: 15,
     // "average driver" bases used for the comparisons (workshop slide: 1.0 harsh brake / 100 km) — illustrative
     AVG: { harshPer100: 1.0, overSafePct: 6, phonePerHour: 0.6, nightShare: 0.10, parkCycles: 2.0 },
-    weights: { speeding: 22, phone: 18, smooth: 17, claims: 14, nightfatigue: 9, parking: 10, experience: 10 },
+    // evidence-based revision 28.10 (CSDD 2024 in-depth investigations + BTA parking claims; see docs/WEIGHTS.md): speed up, phone down (no local evidence), others as before
+    weights: { speeding: 26, phone: 12, smooth: 18, claims: 14, nightfatigue: 10, parking: 10, experience: 10 },
     // KPI -> 0..100 mappings: value at which the KPI score hits 0
     zero: { overSafePct: 12, phonePerHour: 2.0, harshPer100: 5, claims: 3 },
     // experience matters most while there is little else to go on (risk is concentrated in the first hundreds of hours);

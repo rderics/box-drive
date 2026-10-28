@@ -196,6 +196,7 @@
     <div class="grid g3" style="margin-top:14px"><div class="card flat"><b>${t('reqs')}</b><ul><li>${t('req1')}</li><li>${t('req2')}</li><li>${t('req3')}</li></ul></div>
       <div class="card flat"><b>${t('roadmap')}</b><ul>${t('rm').map((x) => `<li>${x}</li>`).join('')}</ul></div>
       <div class="card flat"><b>${t('assumptions')}</b><ul>${t('as').map((x) => `<li>${x}</li>`).join('')}</ul></div></div>
+    <div class="card" style="margin-top:14px"><h3>${t('evid_t')}</h3><p class="note">${t('evid_cav')}</p><div style="overflow-x:auto"><table><thead><tr><th>${t('weights')}</th><th></th><th>CSDD / BTA</th></tr></thead><tbody>${t('evid').map((e) => `<tr><td style="white-space:nowrap"><b>${t('k_' + e[0])}</b><br><small>${fmt(P.weights[e[0]], 0)}${e[0] === 'experience' ? '–35' : ''}%</small></td><td><span class="badge ${e[1] === 's' ? 'b-good' : e[1] === 'm' ? 'b-mid' : e[1] === 'w' ? 'b-bad' : 'b-mute'}">${t('evid_str')[e[1]]}</span></td><td style="font-size:.84rem">${e[2]}</td></tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:8px">${t('evid_unm')}</p></div>
     <div class="card" style="margin-top:14px"><h3>${t('ts_t')}</h3><ul><li>${t('ts_1')}</li><li>${t('ts_2')}</li><li>${t('ts_3')}</li></ul></div>
     <h3 style="margin-top:18px">${t('addon')}</h3><div class="phone"><div class="screen"><b>LTAB OCTA</b>
       <div class="card flat"><small>${t('score')}</small><div style="font-size:2rem;font-weight:700;color:var(--good)">86</div></div>
@@ -244,6 +245,7 @@
     const panel = S.demoOpen ? `<div class="demo-panel card"><div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Demo</h3><button class="chip" data-demo="toggle" aria-label="Close">✕</button></div>
       <p class="note" style="margin:8px 0 0">${dbLine()}</p>
       <h3 style="margin-top:12px">${L.persona}</h3><div class="pills">${ds.map((x) => `<button class="chip ${x.id === S.driver ? 'on' : ''}" data-persona="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+      <div class="pills"><a class="chip" href="collect.html" style="text-decoration:none">${lang === 'lv' ? '📡 Braucienu vācējs' : '📡 Trip collector'}</a><a class="chip" href="insurer.html" style="text-decoration:none">${lang === 'lv' ? '🏢 Apdrošinātāja skats' : '🏢 Insurer view'}</a></div>
       <div class="pills"><button class="chip" data-demo="onboard">${L.onboard_btn}</button><button class="chip" data-demo="lang">${lang === 'lv' ? 'EN' : 'LV'}</button></div>
       <h3>${L.views_t}</h3><div class="pills">${views.map(([k, lk]) => `<button class="chip" data-tab="${k}">${t(lk)}</button>`).join('')}</div>
       <h3>${L.what_t}</h3><ul style="margin:.3em 0 0;padding-left:1.1em;font-size:.88rem">${L.what.map((x) => `<li>${x.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</li>`).join('')}</ul></div>` : '';

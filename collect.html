@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Braucienu vācējs — eksperimentāls</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="mini.css?v=20261028i">
+</head>
+<body>
+<main class="mini">
+  <h1>Braucienu vācējs <small>eksperimentāls</small></h1>
+  <p class="lead">Mēra ātrumu, bremzēšanu, pagriezienus, stāvvietas manevrus un telefona turēšanu, aprēķina notikumus <b>telefonā</b> un sūta uz datubāzi tikai kopsavilkumu. GPS vēsture netiek glabāta. <b>Tīmekļa lapa nevar strādāt fonā</b> — ekrānam jābūt ieslēgtam, telefonam turētājā. Īstais fona režīms ir telefona lietotnē.</p>
+
+  <section class="card">
+    <label class="row"><input type="checkbox" id="consent"> <span>Piekrītu, ka šis brauciens tiek mērīts un tā kopsavilkums saglabāts (ES serveris). Piekrišanu var atsaukt.</span></label>
+    <label>Auto nosaukums <input id="carName" placeholder="piem. VW Golf" maxlength="40"></label>
+    <label>Numurs (neobligāti) <input id="carPlate" placeholder="AB1234" maxlength="10"></label>
+    <label>Ātruma limits, kamēr nav kartes datu
+      <select id="limit"><option>30</option><option selected>50</option><option>70</option><option>90</option></select></label>
+    <label>Aptuvenas braukšanas stundas kopā <input id="expHours" type="number" min="0" value="100"></label>
+    <label class="row"><input type="checkbox" id="asDriver" checked> <span>Es esmu šoferis (ja neesmu, brauciens netiek vērtēts)</span></label>
+  </section>
+
+  <section class="card">
+    <div class="row"><button id="start" class="btn">▶ Sākt braucienu</button><button id="stop" class="btn sec" disabled>■ Beigt un nosūtīt</button></div>
+    <div class="row"><button id="sim" class="btn ghost">Simulēt braucienu (bez automašīnas)</button></div>
+    <div class="live"><div><b id="spd">0</b><small>km/h</small></div><div><b id="cnt">0</b><small>sekundes</small></div><div><b id="acc">–</b><small>GPS precizitāte, m</small></div><div><b id="mot">–</b><small>kustības sensori</small></div></div>
+    <p id="status" class="note"></p>
+  </section>
+
+  <section class="card" id="result" hidden></section>
+  <p class="note">Kā tiek noteikts <b>telefons</b>: ātra telefona sagāšana rokā braukšanas laikā (žiroskops, ne vertikālā ass) — nevis lietotne, kas ir ekrānā, tāpēc Waze/Google Maps turētājā netiek skaitīti. <b>Stāvvietas</b>: lēnā posma sākumā un beigās; pieskārieni — akselerometra kliedziens zem 10 km/h. <b>Laikapstākļi</b>: Open-Meteo modelis pēc vietas (2 zīmes aiz komata) un laika; tā nav ceļa sensoru informācija.</p>
+  <p class="note"><a href="./">← uz lietotnes demo</a> · <a href="insurer.html">apdrošinātāja skats</a></p>
+</main>
+<script src="engine.js?v=20261028i"></script>
+<script src="weather.js?v=20261028i"></script>
+<script src="collector.js?v=20261028i"></script>
+</body>
+</html>

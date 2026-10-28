@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apdrošinātāja skats — rādītāji pa auto</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="mini.css?v=20261028i">
+</head>
+<body>
+<main class="mini" style="max-width:1000px">
+  <h1>Apdrošinātāja skats <small>tikai auto</small></h1>
+  <p class="lead">OCTA ir pa auto, tāpēc apdrošinātājs redz <b>tikai auto rādītāju</b> — nevis atsevišķus braucējus (tiek rādīts tikai braucēju skaits). Dati nāk no servera funkcijas <code>car-scores</code>, kas rēķina rādītājus no datubāzes ar to pašu dzinēju, kas lietotnē.</p>
+  <section class="card">
+    <label>API atslēga <input id="key" type="password" placeholder="ik_…" autocomplete="off"></label>
+    <div class="row"><button id="go" class="btn">Ielādēt</button>
+      <select id="src" style="width:auto"><option value="all">Visi dati</option><option value="phone">Tikai īsti mērījumi (telefons)</option><option value="synthetic">Tikai sintētiskie demo</option></select></div>
+    <p id="msg" class="note"></p>
+  </section>
+  <section class="card" id="out" hidden></section>
+  <p class="note">Cenas priekšskatījums ir <b>ilustratīvs</b> (0 % atlaide pie 50 punktiem, −25 % pie 100) — nav Balcia vai cita apdrošinātāja cenu modelis. Atslēga netiek glabāta (tikai šīs cilnes sesijā).</p>
+  <p class="note"><a href="./">← uz lietotnes demo</a> · <a href="collect.html">braucienu vācējs</a></p>
+</main>
+<script>
+(function () {
+  var URL = 'https://qjakepgeqioqrmsufaty.supabase.co/functions/v1/car-scores', $ = function (id) { return document.getElementById(id); };
+  try { $('key').value = sessionStorage.getItem('ik') || ''; } catch (e) {}
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var cls = function (b) { return b === 'low' ? 'good' : b === 'medium' ? 'mid' : 'bad'; }, bandLv = { low: 'zems risks', medium: 'vidējs risks', high: 'augsts risks' }, relLv = { high: 'augsta', medium: 'vidēja', low: 'zema (maz datu)' };
+  $('go').onclick = function () {
+    var k = $('key').value.trim(); if (!k) { $('msg').textContent = 'Ievadi API atslēgu.'; return; }
+    try { sessionStorage.setItem('ik', k); } catch (e) {}
+    $('msg').textContent = 'Ielādē…';
+    fetch(URL + '?source=' + $('src').value, { headers: { 'x-api-key': k } }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); }).then(function (r) {
+      if (r.s !== 200) { $('msg').textContent = 'Kļūda ' + r.s + ': ' + (r.j.error || ''); $('out').hidden = true; return; }
+      $('msg').textContent = r.j.cars.length + ' auto · ' + r.j.params_version + ' · ' + new Date(r.j.computed_at).toLocaleString('lv-LV');
+      $('out').hidden = false;
+      $('out').innerHTML = '<div style="overflow-x:auto"><table><tr><th>Auto</th><th>Numurs</th><th class="num">Braucēji</th><th class="num">km</th><th>Rādītājs</th><th>Risks</th><th>Datu ticamība</th><th class="num">Ātrums virs droša, %</th><th class="num">Strauji / 100 km</th><th class="num">Telefons / h</th><th class="num">Stāvvietas manevri</th><th class="num">Prēmija (ilustr.)</th></tr>' +
+        r.j.cars.map(function (c) { return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.plate || '–') + '</td><td class="num">' + c.drivers + '</td><td class="num">' + c.km + '</td><td><b>' + c.score + '</b> <small>± ' + c.uncertainty + '</small></td><td><span class="pill ' + cls(c.band) + '">' + bandLv[c.band] + '</span></td><td>' + relLv[c.reliability] + '</td><td class="num">' + c.kpis.over_safe_pct + '</td><td class="num">' + c.kpis.harsh_per_100km + '</td><td class="num">' + c.kpis.phone_per_hour + '</td><td class="num">' + c.kpis.parking_cycles_per_parking + '</td><td class="num">' + c.premium_preview.eur + ' € <small>−' + c.premium_preview.discount_pct + '%</small></td></tr>'; }).join('') + '</table></div>';
+    }).catch(function (e) { $('msg').textContent = 'Tīkla kļūda: ' + e.message; });
+  };
+})();
+</script>
+</body>
+</html>
