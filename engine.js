@@ -25,11 +25,15 @@
     // evidence-based revision 28.10 (CSDD 2024 in-depth investigations; see docs/WEIGHTS.md): speed up, phone down (no local evidence); parking removed 28.10 (Rinalds), its 10 points spread over the rest
     weights: { speeding: 29, phone: 14, smooth: 20, claims: 16, nightfatigue: 11, experience: 10 },
     // KPI -> 0..100 mappings: value at which the KPI score hits 0
-    zero: { overSafePct: 12, phonePerHour: 2.0, harshPer100: 5, claims: 3 },
+    // softened 28.10 (Rinalds: too harsh): a KPI now has to be about twice as bad as before to reach 0
+    zero: { overSafePct: 20, phonePerHour: 4, harshPer100: 10, claims: 5 },
+    nightCoef: 100, fatigueCoef: 10,   // night: 100 x share of night km, 10 points per run > 2 h without a break
+    bandLow: 75, bandMid: 55,          // total >= 75 low risk, >= 55 medium
+    discountFrom: 40, discountFull: 90, // illustrative discount: 0 % at 40 points ... -25 % at 90 (never a surcharge)
     // experience matters most while there is little else to go on (risk is concentrated in the first hundreds of hours);
     // its weight = base + extra * exp(-hours/tau): ~35 % for a brand-new driver, ~19 % at 150 h, ~11 % at 800 h. Other weights are scaled to keep the sum at 100.
     expWeightBase: 10, expWeightExtra: 25, expWeightTau: 150,
-    expTauHours: 200,                // experience saturates around a few hundred hours — assumption
+    expTauHours: 150,                // experience saturates around a few hundred hours — assumption
     expBuckets: ['city', 'highway', 'night', 'badweather'],
     premiumBase: 300,                // illustrative yearly premium, EUR — NOT a Balcia pricing model
   };
@@ -186,7 +190,7 @@
       phone: 100 * clamp(1 - k.phonePerHour / P.zero.phonePerHour, 0, 1),
       smooth: 100 * clamp(1 - k.harshPer100 / P.zero.harshPer100, 0, 1),
       claims: 100 * clamp(1 - claims / P.zero.claims, 0, 1),
-      nightfatigue: clamp(100 - 150 * k.nightShare - 20 * k.fatigue, 0, 100),
+      nightfatigue: clamp(100 - P.nightCoef * k.nightShare - P.fatigueCoef * k.fatigue, 0, 100),
       experience: 100 * (1 - Math.exp(-effHours / P.expTauHours)),
     };
     const wExp = P.expWeightBase + P.expWeightExtra * Math.exp(-effHours / P.expWeightTau), f = (100 - wExp) / (100 - P.weights.experience);
@@ -195,12 +199,12 @@
     total = total / 100;
     // uncertainty: little measured driving and little experience -> wider band
     const sigma = 3 + 14 * Math.exp(-km / 500) + 6 * (1 - s.experience / 100);
-    const band = total >= 80 ? 'low' : total >= 60 ? 'medium' : 'high';
+    const band = total >= P.bandLow ? 'low' : total >= P.bandMid ? 'medium' : 'high';
     return { kpi: k, byWeather, weights: W, scores: s, total: r1(total), sigma: r1(sigma), band, diversity, effHours: r1(effHours), expHours, claims };
   }
 
-  function premiumPreview(total) { // illustrative only: 0 % off at 50 points, -25 % at 100 (voluntary telematics discount, never a surcharge)
-    const pct = Math.round(clamp((total - 50) * 0.5, 0, 25));
+  function premiumPreview(total) { // illustrative only: 0 % off at 40 points, -25 % at 90 (voluntary telematics discount, never a surcharge)
+    const pct = Math.round(clamp((total - P.discountFrom) * 25 / (P.discountFull - P.discountFrom), 0, 25));
     const eur = Math.round(P.premiumBase * (1 - pct / 100));
     return { base: P.premiumBase, eur, discountPct: pct, savings: P.premiumBase - eur, factor: r1((1 - pct / 100) * 100) / 100 };
   }
@@ -225,6 +229,28 @@
     return p;
   }
 
-  const api = { P, analyzeTrip, scoreDriver, advice, premiumPreview, fatigueEvents, weekKey, sunTimes, isDark };
+  /* What-if for the recommendation: for every factor the driver can change, the score it would have at a "good" KPI level
+     (the average-driver base, or a bit better for night/phone), the weighted points that would add, and the illustrative premium change.
+     Numbers only; the text around them is written by the UI or by the Gemini agent (which may not invent numbers). */
+  function whatIf(res) {
+    const A = P.AVG, W = res.weights, s = res.scores, k = res.kpi;
+    const target = {
+      speeding: { kpi: Math.min(A.overSafePct / 2, k.overSafePct), score: 100 * clamp(1 - Math.min(A.overSafePct / 2, k.overSafePct) / P.zero.overSafePct, 0, 1) },
+      smooth: { kpi: Math.min(A.harshPer100, k.harshPer100), score: 100 * clamp(1 - Math.min(A.harshPer100, k.harshPer100) / P.zero.harshPer100, 0, 1) },
+      phone: { kpi: Math.min(A.phonePerHour / 2, k.phonePerHour), score: 100 * clamp(1 - Math.min(A.phonePerHour / 2, k.phonePerHour) / P.zero.phonePerHour, 0, 1) },
+      nightfatigue: { kpi: Math.min(A.nightShare, k.nightShare), score: clamp(100 - P.nightCoef * Math.min(A.nightShare, k.nightShare), 0, 100) },
+    };
+    const now = premiumPreview(res.total), out = [];
+    for (const key of Object.keys(target)) {
+      const gain = W[key] * (target[key].score - s[key]) / 100;
+      if (gain < 0.3) continue;                                   // already good: nothing to recommend
+      const total2 = Math.min(100, res.total + gain), pr = premiumPreview(total2);
+      out.push({ key, scoreNow: r1(s[key]), scoreTarget: r1(target[key].score), kpiTarget: r1(target[key].kpi * 100) / 100, gainPoints: r1(gain), totalAfter: r1(total2), eurAfter: pr.eur, savingEur: now.eur - pr.eur });
+    }
+    out.sort((a, b) => b.gainPoints - a.gainPoints);
+    return out;
+  }
+
+  const api = { P, whatIf, analyzeTrip, scoreDriver, advice, premiumPreview, fatigueEvents, weekKey, sunTimes, isDark };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
 })(typeof self !== 'undefined' ? self : this);

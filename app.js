@@ -6,7 +6,7 @@
   const S = { demoOpen: false, tab: 'app', driver: 'elina', trip: null, session: 'calm', weather: 'dry', limit: 50, imports: [], liveErr: '' };
   const $ = (s, el) => (el || document).querySelector(s);
   const fmt = (x, d) => (x == null || isNaN(x) ? '–' : Number(x).toFixed(d == null ? 1 : d).replace('.', lang === 'lv' ? ',' : '.'));
-  const col = (s) => (s >= 80 ? 'good' : s >= 60 ? 'mid' : 'bad');
+  const col = (s) => (s >= P.bandLow ? 'good' : s >= P.bandMid ? 'mid' : 'bad');
   const cvar = (c) => `var(--${c})`;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 

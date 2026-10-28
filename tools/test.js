@@ -41,7 +41,7 @@ const few = E.scoreDriver([bad], { expHours: 100 }), many = E.scoreDriver(Array(
 assert(many.sigma < few.sigma, 'more km -> narrower band');
 console.log('all engine tests passed');
 // 8. premium preview: no surcharge, discount grows with score
-const p50 = E.premiumPreview(50), p80 = E.premiumPreview(80), p100 = E.premiumPreview(100), p20 = E.premiumPreview(20);
+const p50 = E.premiumPreview(40), p80 = E.premiumPreview(80), p100 = E.premiumPreview(100), p20 = E.premiumPreview(20);
 assert.strictEqual(p20.eur, p50.eur); assert(p80.eur < p50.eur && p100.eur < p80.eur); assert.strictEqual(p100.discountPct, 25);
 console.log('premium tests passed');
 
@@ -54,3 +54,10 @@ console.log('experience weight tests passed');
 assert(Math.abs(Object.values(E.scoreDriver([], { expHours: 0 }).weights).reduce((a, b) => a + b, 0) - 100) < 1e-9);
 assert(!('parking' in E.P.weights), 'parking removed from the score');
 console.log('weights tests passed');
+
+// 11. softer scoring + what-if for the recommendation
+const wiBad = E.scoreDriver([Object.assign({}, bad)], { expHours: 300 }), wi = E.whatIf(wiBad);
+assert(wi.length > 0 && wi.every((x) => x.gainPoints > 0 && x.totalAfter > wiBad.total && x.savingEur >= 0), 'what-if gives positive gains');
+assert(wi.every((x, i) => i === 0 || wi[i - 1].gainPoints >= x.gainPoints), 'sorted by gain');
+assert(E.scoreDriver([], { expHours: 0 }).total >= 0);
+console.log('what-if tests passed');
