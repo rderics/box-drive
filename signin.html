@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pieteikties ar e-pastu — OCTA braucēja rādītājs</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="mini.css?v=20261028z">
+</head>
+<body>
+<main class="mini" style="max-width:460px">
+  <h1>Pieteikšanās ar e-pastu</h1>
+  <p class="lead">Pieraksties vai izveido kontu, lai tavi braucieni, rādītājs un padomi tiktu saglabāti tev.</p>
+  <div class="row" style="gap:8px;margin-bottom:10px"><button class="btn" id="tabIn" type="button">Pieteikties</button><button class="btn" id="tabUp" type="button" style="opacity:.6">Izveidot kontu</button></div>
+  <form class="card" id="f" autocomplete="on">
+    <label id="nameRow" hidden>Vārds <input id="name" autocomplete="given-name" maxlength="40"></label>
+    <label id="surRow" hidden>Uzvārds <input id="surname" autocomplete="family-name" maxlength="40"></label>
+    <label>E-pasts <input id="email" type="email" autocomplete="email" required></label>
+    <label>Parole <input id="pw" type="password" autocomplete="current-password" minlength="8" maxlength="72" required></label>
+    <label id="consRow" hidden style="display:flex;gap:8px;align-items:flex-start"><input id="cons" type="checkbox" style="width:auto;margin-top:4px"><span>Piekrītu, ka mans telefons nosūta brauciena kopsavilkumu (ātrums, g spēki, notikumu skaits — bez atrašanās vietas vēstures) šim prototipam. To var atsaukt.</span></label>
+    <button class="btn" id="go" type="submit">Pieteikties</button>
+    <p id="msg" class="note" role="status"></p>
+  </form>
+  <div class="card" style="display:flex;gap:16px;align-items:center;margin-top:12px"><img src="qr.png" alt="QR kods uz demo" width="108" height="108" style="border-radius:8px;flex:none"><div><b>Atver telefonā</b><p class="note" style="margin:4px 0 0">Noskenē QR kodu, lai atvērtu demo savā telefonā: rderics.id.lv/octa</p></div></div>
+  <p class="note">Parole tiek glabāta tikai kā šifrēts jaucējkods (bcrypt) Supabase Auth datubāzē — ne mūsu tabulās, ne lapā. Prototips: e-pasta apstiprināšanas nav.</p>
+
+</main>
+<script src="auth.js?v=20261028z"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); }, mode = 'in';
+  var ERR = { invalid_credentials: 'Nepareizs e-pasts vai parole.', email_taken: 'Šis e-pasts jau ir reģistrēts — pieraksties.', invalid_email: 'Nederīgs e-pasts.', password_length: 'Parolei jābūt 8–72 rakstzīmēm.', name_required: 'Ievadi vārdu.', consent_required: 'Vajag piekrišanu.', rate_limited: 'Pārāk daudz reģistrāciju — mēģini vēlāk.' };
+  function setMode(m) {
+    mode = m; var up = m === 'up';
+    $('nameRow').hidden = !up; $('surRow').hidden = !up; $('consRow').hidden = !up; $('go').textContent = up ? 'Izveidot kontu' : 'Pieteikties';
+    $('tabIn').style.opacity = up ? .6 : 1; $('tabUp').style.opacity = up ? 1 : .6; $('pw').autocomplete = up ? 'new-password' : 'current-password'; $('msg').textContent = '';
+  }
+  $('tabIn').onclick = function () { setMode('in'); }; $('tabUp').onclick = function () { setMode('up'); };
+  if (location.hash === '#signup') setMode('up');
+  function go() { return Auth.token().then(function (t) { return fetch(Auth.URL + '/functions/v1/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'me' }) }); }).then(function (r) { return r.json(); }).then(function (m) { location.href = m && m.admin ? 'admin.html' : './'; }).catch(function () { location.href = './'; }); }
+  if (Auth.user()) go();
+  $('f').onsubmit = function (e) {
+    e.preventDefault();
+    if (mode === 'up' && (!$('name').value.trim() || !$('surname').value.trim())) { $('msg').textContent = 'Ievadi vārdu un uzvārdu.'; return; }
+    $('go').disabled = true; $('msg').textContent = 'Lūdzu uzgaidi…';
+    var p = mode === 'up' ? Auth.signup({ email: $('email').value, password: $('pw').value, name: ($('name').value.trim() + ' ' + $('surname').value.trim()).trim(), consent: $('cons').checked }) : Auth.login($('email').value, $('pw').value);
+    p.then(go).catch(function (er) { $('msg').textContent = ERR[er.message] || ('Kļūda: ' + er.message); $('go').disabled = false; });
+  };
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,8 @@
   'use strict';
   const URL = 'https://qjakepgeqioqrmsufaty.supabase.co', KEY = 'sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS', SK = 'octa_session';
   const get = () => { try { return JSON.parse(localStorage.getItem(SK) || 'null'); } catch (e) { return null; } };
-  const put = (s) => { try { s ? localStorage.setItem(SK, JSON.stringify(s)) : localStorage.removeItem(SK); } catch (e) {} };
+  const RK = 'octa_remember';   // "remember this device": the e-ID simulation signs back in from this after a log out
+  const put = (s) => { try { if (s) { localStorage.setItem(SK, JSON.stringify(s)); localStorage.setItem(RK, JSON.stringify(s)); } else localStorage.removeItem(SK); } catch (e) {} };
   const jf = (path, body, extra) => fetch(URL + path, { method: 'POST', headers: Object.assign({ apikey: KEY, 'Content-Type': 'application/json' }, extra || {}), body: JSON.stringify(body) })
     .then((r) => r.json().then((j) => ({ s: r.status, j })));
   const fromGrant = (j) => ({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Date.now() + (j.expires_in || 3600) * 1000 - 30000, email: j.user && j.user.email, uid: j.user && j.user.id, name: j.user && j.user.user_metadata && j.user.user_metadata.name });
@@ -28,6 +29,15 @@
     s = fromGrant(r.j); put(s); return s.access_token;
   }
   const logout = () => put(null);
-  const api = { URL, KEY, signup, login, logout, token, user: get };
+  const remembered = () => { try { return JSON.parse(localStorage.getItem(RK) || 'null'); } catch (e) { return null; } };
+  const forget = () => { try { localStorage.removeItem(SK); localStorage.removeItem(RK); } catch (e) {} };
+  /* e-ID (simulated): restores the session this device already had (refresh token) — no password typed, nothing public */
+  async function eid() {
+    const r = remembered(); if (!r || !r.refresh_token) throw new Error('no_remembered');
+    const t = await jf('/auth/v1/token?grant_type=refresh_token', { refresh_token: r.refresh_token });
+    if (t.s !== 200 || !t.j.access_token) { try { localStorage.removeItem(RK); } catch (e) {} throw new Error('expired'); }
+    const s = fromGrant(t.j); put(s); return s;
+  }
+  const api = { URL, KEY, signup, login, logout, token, user: get, remembered, forget, eid };
   root.Auth = api;
 })(typeof self !== 'undefined' ? self : this);

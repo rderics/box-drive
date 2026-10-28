@@ -41,7 +41,7 @@
   /* ---------- svg helpers ---------- */
   function ring(score, c) {
     const R = 70, C = 2 * Math.PI * R, off = C * (1 - Math.max(0, Math.min(100, score)) / 100);
-    return `<svg viewBox="0 0 170 170" width="100%" height="100%" role="img" aria-label="${fmt(score, 0)}/100"><circle cx="85" cy="85" r="${R}" fill="none" stroke="var(--line)" stroke-width="14"/><circle cx="85" cy="85" r="${R}" fill="none" stroke="${cvar(c)}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 85 85)"/></svg>`;
+    return `<svg viewBox="0 0 170 170" width="100%" height="100%" role="img" aria-label="${fmt(score, 0)}/100"><circle cx="85" cy="85" r="${R}" fill="none" stroke="var(--line)" stroke-width="14"/><circle cx="85" cy="85" r="${R}" fill="none" stroke="${cvar(c)}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 85 85)" class="rgc" style="--c:${C}"/></svg>`;
   }
   function trendSvg(pts) {
     if (!pts.length) return '';
@@ -275,6 +275,14 @@
         S.ai[key] = r; const cur = $('#aiadv'); if (cur && cur.dataset.subj === id) cur.innerHTML = aiHtml(r);
       }).catch(() => { const cur = $('#aiadv'); if (cur && cur.dataset.subj === id) cur.innerHTML = `<b>${t('ai_t')}</b><p class="note">${t('ai_err')}</p>`; });
   }
+  /* motion: numbers count up, bars grow, cards rise in (skipped when the visitor prefers reduced motion) */
+  function animateIn(root) {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    Array.prototype.forEach.call(root.querySelectorAll('[data-count]'), function (el) {
+      var to = +el.dataset.count, t0 = performance.now(), dur = 1100;
+      (function step(now) { var f = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - f, 3); el.textContent = Math.round(to * e); if (f < 1) requestAnimationFrame(step); })(t0);
+    });
+  }
   function render() {
     document.documentElement.lang = lang;
     $('#lang').textContent = lang === 'en' ? 'LV' : 'EN';
@@ -283,6 +291,7 @@
     $('#main').innerHTML = TABS.find(([k]) => k === S.tab)[1]();
     document.body.classList.toggle('app-mode', S.tab === 'app');
     const pr = $('#phone-root'); if (pr) Phone.mount(pr);
+    animateIn(document);
     const ai = $('#aiadv'); if (ai) loadAdvice(ai);
     const f = $('#file'); if (f) f.addEventListener('change', onFile);
     const s = $('#sess'); if (s) s.addEventListener('change', (e) => { S.session = e.target.value; render(); });
@@ -318,7 +327,7 @@
   });
   $('#lang').addEventListener('click', () => { lang = lang === 'en' ? 'lv' : 'en'; try { localStorage.setItem('lang', lang); } catch (e) {} render(); });
   window.App = { E, D, carsOf, carRes, allDrivers, resOf, weekly, adviceText, ring, trendSvg, speedChart, rawToTrip, t, fmt, col, P, analyze: E.analyzeTrip,
-    loadDb, reloadMine: () => DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); return info; }), lang: () => lang, state: () => S, invalidate: () => cache.clear(),
+    animateIn, loadDb, reloadMine: () => DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); return info; }), lang: () => lang, state: () => S, invalidate: () => cache.clear(),
     setLang: (l) => { lang = l; try { localStorage.setItem('lang', lang); } catch (e) {} render(); } };
   /* After login the app shows ONLY the user's own data from the database (empty account -> illustrative samples). Nothing is recorded or calculated by the site itself:
      the rides come from the database (Assetto Corsa via live.py / sample seed), the site only calculates the rating from the last rides and displays it. */

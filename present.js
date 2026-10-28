@@ -55,7 +55,7 @@
     var h = '<div class="pv-card"><div class="pv-head"><span class="pv-title">' + t('live') + '</span>' + pill + '</div>';
     if (mode === 'idle') {
       var lr = lastRide();
-      h += '<p class="pv-sub" style="margin-top:8px">' + t('start') + '</p><div class="pv-code">python live.py ac --zones "0-1500:60,1500-:90" --upload</div></div>';
+      h += '<p class="pv-sub" style="margin-top:8px">' + t('start') + '</p><div class="pv-code">python live.py ac --zones "0-1500:60,1500-:90" --upload</div></div><div class="pv-card" style="display:flex;gap:14px;align-items:center"><img src="qr.png" alt="QR" width="92" height="92" style="border-radius:8px;flex:none"><div><div class="pv-title">' + (App.lang() === 'lv' ? 'Izmēģini pats' : 'Try it yourself') + '</div><p class="pv-sub" style="margin-top:4px">' + (App.lang() === 'lv' ? 'Noskenē un atver demo telefonā.' : 'Scan to open the demo on your phone.') + '</p></div></div>';
       h += '<div class="pv-card"><div class="pv-title">' + t('last') + '</div>' + (lr ? '<p class="pv-sub" style="margin-top:6px">' + new Date(lr.tr.startISO).toLocaleString(App.lang() === 'lv' ? 'lv-LV' : 'en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (lr.plate ? ' · ' + esc(lr.plate) : '') + '</p><div class="pv-stats"><div><b>' + fmt(lr.tr.km, 1) + '</b><span>' + t('km') + '</span></div><div><b>' + lr.tr.brake + '</b><span>' + t('brake') + '</span></div><div><b>' + lr.tr.accel + '</b><span>' + t('accel') + '</span></div><div><b>' + lr.tr.corner + '</b><span>' + t('corner') + '</span></div></div>' : '<p class="pv-sub" style="margin-top:6px">' + t('none') + '</p>') + '</div>';
     } else {
       var c = r.counts || {}, over = r.lim && r.v > r.lim + 3, gl = r.g_lat, go = r.g_lon;

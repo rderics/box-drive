@@ -25,6 +25,7 @@
 .carrow{display:flex;gap:16px;align-items:stretch}
 .thumb{width:118px;min-height:128px;border-radius:14px;background:linear-gradient(160deg,#d8d6e0,#a9a7b6);display:grid;place-items:center;color:#fff;flex:none}
 .thumb svg{width:70px;height:70px;stroke-width:1.2}
+.thumb img{width:100%;height:100%;min-height:128px;object-fit:cover;border-radius:14px;display:block}
 .facts div{margin-bottom:10px}.facts b{display:block;font-size:17px;font-weight:650}.facts small{color:var(--mute);font-size:14px}
 .chipscore{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--brand-soft);padding:12px 18px;cursor:pointer;font:inherit;color:var(--ink);text-align:left}
 .chipscore .mini{width:46px;height:46px;position:relative;flex:none}
@@ -100,3 +101,16 @@ body.app-mode main{max-width:none;padding:22px 0}
 .advbox.mid{background:var(--mid-soft);border-left-color:var(--mid)}
 .advbox.bad{background:var(--bad-soft);border-left-color:var(--bad)}
 .advbox.good b{color:var(--good)}.advbox.mid b{color:#a96a00}.advbox.bad b{color:var(--bad)}
+
+/* ---- motion: rings draw themselves, bars grow, cards rise in ---- */
+@keyframes rgdraw{from{stroke-dashoffset:var(--c)}}
+@keyframes barin{from{transform:scaleX(0)}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes popin{from{opacity:0;transform:scale(.86)}}
+.rgc{animation:rgdraw 1.2s cubic-bezier(.2,.8,.2,1) both}
+.bar i,.mbar i{transform-origin:left center;animation:barin .9s cubic-bezier(.2,.8,.2,1) .15s both}
+.pcard,.card.kpi,.lrow{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+.pcard:nth-child(2),.card.kpi:nth-child(2){animation-delay:.06s}.pcard:nth-child(3),.card.kpi:nth-child(3){animation-delay:.12s}.pcard:nth-child(4),.card.kpi:nth-child(4){animation-delay:.18s}
+.scorecard .ring{animation:popin .6s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){.rgc,.bar i,.mbar i,.pcard,.card.kpi,.lrow,.scorecard .ring{animation:none!important}}
+.device.still *{animation:none!important}

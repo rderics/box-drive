@@ -20,8 +20,10 @@
     }
   }
 
+  const PHOTOS = { HA3787: 'volvo.jpg' };      // car photos by plate (spaces and dashes ignored)
+  const photoOf = (plate) => PHOTOS[String(plate || '').toUpperCase().replace(/[^A-Z0-9]/g, '')] || null;
   function convert(rows) {
-    const cars = rows.cars.map((c) => ({ id: c.id, name: c.name, plate: c.plate, claims3y: c.claims_3y, make: c.make, model: c.model, year: c.year, fuel: c.fuel, octa: c.octa_valid_until, mine: rows.mine === true }));
+    const cars = rows.cars.map((c) => ({ id: c.id, name: c.name, plate: c.plate, claims3y: c.claims_3y, make: c.make, model: c.model, year: c.year, fuel: c.fuel, octa: c.octa_valid_until, mine: rows.mine === true, photo: photoOf(c.plate) }));
     const evBy = {};
     for (const e of rows.events) { const o = { i: e.t_idx, type: e.type }; if (e.g != null) o.g = e.g; if (e.data) Object.assign(o, e.data); (evBy[e.trip_id] = evBy[e.trip_id] || []).push(o); }
     const tripBy = {};

@@ -3,47 +3,102 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pieteikties — OCTA braucēja rādītājs</title>
+<title>Smart-ID pieteikšanās (simulācija) — OCTA braucēja rādītājs</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="stylesheet" href="mini.css?v=20261028x">
+<style>
+  :root{--bg:#f6f5fa;--card:#fff;--ink:#1c1b25;--mute:#6b6a7a;--line:#e4e2ee;--brand:#b3282d;--brand-soft:#fbeaea;--good:#1f9d63;--good-soft:#e1f5ec}
+  @media (prefers-color-scheme:dark){:root{--bg:#14131a;--card:#1d1c26;--ink:#efeef7;--mute:#9d9bb0;--line:#2d2b3b;--brand:#e5565c;--brand-soft:#3a1c1e;--good:#3dd391;--good-soft:#16352a}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px}
+  .wrap{width:100%;max-width:440px;display:grid;gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 1px 2px rgba(20,20,30,.04),0 14px 40px rgba(20,20,30,.08);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}}
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);padding:3px 10px;border-radius:99px}
+  h1{margin:12px 0 4px;font-size:28px;letter-spacing:-.02em}
+  p{margin:0}.mute{color:var(--mute)}.small{font-size:13px}
+  .who{display:flex;gap:14px;align-items:center;margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:16px}
+  .av{width:48px;height:48px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;flex:none}
+  .btn{width:100%;border:0;border-radius:14px;padding:15px 18px;font:inherit;font-weight:700;font-size:17px;background:var(--brand);color:#fff;cursor:pointer;transition:transform .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .code{font:800 68px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-align:center;color:var(--brand);margin:6px 0 14px;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.04)}}
+  .bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s linear}
+  .eid{display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center}
+  .mock{border:2px solid var(--line);border-radius:24px;padding:14px 10px;text-align:center;display:grid;gap:8px;background:var(--bg);animation:rise .5s .1s both}
+  .mock b{font:800 24px ui-monospace,Consolas,monospace}
+  .pin{display:flex;gap:8px;justify-content:center}.pin i{width:12px;height:12px;border-radius:50%;background:var(--line);transition:background .2s}.pin i.on{background:var(--brand)}
+  .ok{display:grid;place-items:center;gap:10px;text-align:center;padding:10px 0}
+  .ok svg{width:96px;height:96px}.ok circle{fill:var(--good-soft)}
+  .ok .c{fill:none;stroke:var(--good);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .15s ease-out forwards}
+  .ok .r{fill:none;stroke:var(--good);stroke-width:5;stroke-dasharray:290;stroke-dashoffset:290;animation:draw .7s ease-out forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  a{color:var(--brand);font-weight:600}
+  .qr{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+  .qr img{border-radius:8px;flex:none}
+  [hidden]{display:none!important}
+  @media (max-width:420px){.eid{grid-template-columns:1fr}.mock{max-width:200px;margin:0 auto}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.ok .c,.ok .r{stroke-dashoffset:0}}
+</style>
 </head>
 <body>
-<main class="mini" style="max-width:460px">
-  <h1>OCTA braucēja rādītājs</h1>
-  <p class="lead">Pieraksties vai izveido kontu, lai tavi braucieni, rādītājs un padomi tiktu saglabāti tev.</p>
-  <div class="row" style="gap:8px;margin-bottom:10px"><button class="btn" id="tabIn" type="button">Pieteikties</button><button class="btn" id="tabUp" type="button" style="opacity:.6">Izveidot kontu</button></div>
-  <form class="card" id="f" autocomplete="on">
-    <label id="nameRow" hidden>Vārds <input id="name" autocomplete="given-name" maxlength="40"></label>
-    <label id="surRow" hidden>Uzvārds <input id="surname" autocomplete="family-name" maxlength="40"></label>
-    <label>E-pasts <input id="email" type="email" autocomplete="email" required></label>
-    <label>Parole <input id="pw" type="password" autocomplete="current-password" minlength="8" maxlength="72" required></label>
-    <label id="consRow" hidden style="display:flex;gap:8px;align-items:flex-start"><input id="cons" type="checkbox" style="width:auto;margin-top:4px"><span>Piekrītu, ka mans telefons nosūta brauciena kopsavilkumu (ātrums, g spēki, notikumu skaits — bez atrašanās vietas vēstures) šim prototipam. To var atsaukt.</span></label>
-    <button class="btn" id="go" type="submit">Pieteikties</button>
-    <p id="msg" class="note" role="status"></p>
-  </form>
-  <p class="note">Parole tiek glabāta tikai kā šifrēts jaucējkods (bcrypt) Supabase Auth datubāzē — ne mūsu tabulās, ne lapā. Prototips: e-pasta apstiprināšanas nav.</p>
-
+<main class="wrap">
+  <section class="card" id="s1">
+    <span class="tag">Smart-ID · simulācija</span>
+    <h1>Pieteikšanās</h1>
+    <p class="mute">Tā darbojas e-ID pieteikšanās. Šajā demo nekas netiek sūtīts uz īstu e-ID pakalpojumu.</p>
+    <div class="who"><span class="av" id="ini">?</span><div><b id="nm">—</b><br><span class="mute small" id="em"></span></div></div>
+    <button class="btn" id="go" type="button">Pieteikties ar Smart-ID</button>
+    <p class="mute small" id="first" hidden style="margin-top:12px">Šajā ierīcē vēl nav saglabāta pieteikšanās. Pieraksties vienu reizi ar e-pastu, pēc tam Smart-ID simulācija ielogos automātiski.</p>
+    <p class="small" style="margin-top:14px;text-align:center"><a href="signin.html">Pieteikties ar e-pastu</a> <span class="mute">·</span> <a href="#" id="forget" hidden>Aizmirst šo ierīci</a></p>
+  </section>
+  <section class="card" id="s2" hidden>
+    <span class="tag">2. solis · apstiprini e-ID lietotnē</span>
+    <h1>Pārbaudi kodu</h1>
+    <p class="mute" id="who2"></p>
+    <div class="eid" style="margin-top:14px">
+      <div><div class="code" id="code" aria-live="polite">0000</div><div class="bar"><i id="pg"></i></div><p class="mute small" id="pgt" style="margin-top:8px">Gaida apstiprinājumu…</p></div>
+      <div class="mock"><span class="mute small">e-ID lietotne</span><b id="code2">0000</b><span class="small">Pieteikties Box-Driver?</span><div class="pin"><i></i><i></i><i></i><i></i></div></div>
+    </div>
+  </section>
+  <section class="card" id="s3" hidden>
+    <div class="ok"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><circle class="r" cx="50" cy="50" r="46"/><path class="c" d="M30 52 L45 66 L71 36"/></svg><h1 style="margin:0">Pieteikšanās veiksmīga</h1><p class="mute" id="hi"></p></div>
+  </section>
+  <div class="qr"><img src="qr.png" alt="QR kods uz demo" width="96" height="96"><div><b>Atver telefonā</b><p class="mute small" style="margin-top:3px">Noskenē QR kodu: rderics.id.lv/octa</p></div></div>
 </main>
-<script src="auth.js?v=20261028x"></script>
+<script src="auth.js?v=20261028z"></script>
 <script>
 (function () {
-  var $ = function (id) { return document.getElementById(id); }, mode = 'in';
-  var ERR = { invalid_credentials: 'Nepareizs e-pasts vai parole.', email_taken: 'Šis e-pasts jau ir reģistrēts — pieraksties.', invalid_email: 'Nederīgs e-pasts.', password_length: 'Parolei jābūt 8–72 rakstzīmēm.', name_required: 'Ievadi vārdu.', consent_required: 'Vajag piekrišanu.', rate_limited: 'Pārāk daudz reģistrāciju — mēģini vēlāk.' };
-  function setMode(m) {
-    mode = m; var up = m === 'up';
-    $('nameRow').hidden = !up; $('surRow').hidden = !up; $('consRow').hidden = !up; $('go').textContent = up ? 'Izveidot kontu' : 'Pieteikties';
-    $('tabIn').style.opacity = up ? .6 : 1; $('tabUp').style.opacity = up ? 1 : .6; $('pw').autocomplete = up ? 'new-password' : 'current-password'; $('msg').textContent = '';
+  var $ = function (id) { return document.getElementById(id); }, busy = false;
+  var who = Auth.user() || Auth.remembered();
+  function initials(n) { return String(n || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
+  if (who) { $('ini').textContent = initials(who.name || who.email); $('nm').textContent = who.name || who.email; $('em').textContent = who.email || ''; $('forget').hidden = false; }
+  else { $('nm').textContent = 'Nav saglabāta konta'; $('go').textContent = 'Pieteikties ar e-pastu (vienreiz)'; $('first').hidden = false; }
+  $('forget').onclick = function (e) { e.preventDefault(); Auth.forget(); location.reload(); };
+
+  function go() {   // administrators open the admin site, everyone else the app
+    return Auth.token().then(function (t) { return fetch(Auth.URL + '/functions/v1/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'me' }) }); })
+      .then(function (r) { return r.json(); }).then(function (m) { location.href = m && m.admin ? 'admin.html' : './'; }).catch(function () { location.href = './'; });
   }
-  $('tabIn').onclick = function () { setMode('in'); }; $('tabUp').onclick = function () { setMode('up'); };
-  if (location.hash === '#signup') setMode('up');
-  function go() { return Auth.token().then(function (t) { return fetch(Auth.URL + '/functions/v1/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'me' }) }); }).then(function (r) { return r.json(); }).then(function (m) { location.href = m && m.admin ? 'admin.html' : './'; }).catch(function () { location.href = './'; }); }
-  if (Auth.user()) go();
-  $('f').onsubmit = function (e) {
-    e.preventDefault();
-    if (mode === 'up' && (!$('name').value.trim() || !$('surname').value.trim())) { $('msg').textContent = 'Ievadi vārdu un uzvārdu.'; return; }
-    $('go').disabled = true; $('msg').textContent = 'Lūdzu uzgaidi…';
-    var p = mode === 'up' ? Auth.signup({ email: $('email').value, password: $('pw').value, name: ($('name').value.trim() + ' ' + $('surname').value.trim()).trim(), consent: $('cons').checked }) : Auth.login($('email').value, $('pw').value);
-    p.then(go).catch(function (er) { $('msg').textContent = ERR[er.message] || ('Kļūda: ' + er.message); $('go').disabled = false; });
+  $('go').onclick = function () {
+    if (busy) return;
+    if (!who) { location.href = 'signin.html'; return; }
+    busy = true; $('s1').hidden = true; $('s2').hidden = false;
+    var code = String(1000 + Math.floor(Math.random() * 9000)); $('code').textContent = code; $('code2').textContent = code;
+    $('who2').innerHTML = 'Pieteikšanās kā <b>' + String(who.name || who.email).replace(/</g, '') + '</b>. Pārbaudi, vai e-ID lietotnē redzams tas pats kods, un ievadi PIN.';
+    var dots = Array.prototype.slice.call(document.querySelectorAll('.pin i')), t0 = Date.now(), dur = 4200, session = Auth.eid().catch(function (e) { return e; });
+    var iv = setInterval(function () {
+      var f = Math.min(1, (Date.now() - t0) / dur); $('pg').style.width = (f * 100) + '%';
+      dots.forEach(function (d, i) { d.classList.toggle('on', f > 0.45 + i * 0.12); });
+      if (f > 0.9) $('pgt').textContent = 'PIN pieņemts';
+      if (f >= 1) {
+        clearInterval(iv);
+        session.then(function (s) {
+          if (s instanceof Error) { busy = false; $('s2').hidden = true; $('s1').hidden = false; $('first').hidden = false; $('first').textContent = 'Saglabātā pieteikšanās beidzās. Pieraksties vienu reizi ar e-pastu.'; $('go').textContent = 'Pieteikties ar e-pastu'; who = null; return; }
+          $('s2').hidden = true; $('s3').hidden = false; $('hi').textContent = 'Sveiks, ' + String(s.name || s.email).split(' ')[0] + '!';
+          setTimeout(go, 1300);
+        });
+      }
+    }, 100);
   };
 })();
 </script>

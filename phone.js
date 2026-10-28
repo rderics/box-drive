@@ -106,7 +106,7 @@
   let root = null;
 
   const dt = (iso) => { const d = new Date(Date.parse(iso) + 3 * 3600e3); const p = (n) => String(n).padStart(2, '0'); return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}. ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
-  const mini = (s, c) => { const R = 20, C = 2 * Math.PI * R, o = C * (1 - s / 100); return `<div class="mini"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="${R}" fill="none" stroke="#e6e4ec" stroke-width="5"/><circle cx="25" cy="25" r="${R}" fill="none" stroke="var(--${c})" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" transform="rotate(-90 25 25)"/></svg><b>${Math.round(s)}</b></div>`; };
+  const mini = (s, c) => { const R = 20, C = 2 * Math.PI * R, o = C * (1 - s / 100); return `<div class="mini"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="${R}" fill="none" stroke="#e6e4ec" stroke-width="5"/><circle cx="25" cy="25" r="${R}" fill="none" stroke="var(--${c})" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" transform="rotate(-90 25 25)" class="rgc" style="--c:${C}"/></svg><b data-count="${Math.round(s)}">${Math.round(s)}</b></div>`; };
   const mbar = (v, c) => `<div class="mbar"><i style="width:${Math.max(3, Math.min(100, v))}%;background:var(--${c})"></i></div>`;
   const md = (s) => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 
@@ -128,7 +128,7 @@
   function carCard(car, ctx) {
     const a = A(), x = a.carRes(car), c = a.col(x.res.total), m = money(x.res.total), others = x.drivers.filter((k) => k.d.id !== ctx.d.id).map((k) => k.d.name.split(' ')[0]);
     return `<div class="pcard"><div class="top">${car.name}</div><div class="dash"></div>
-      <div class="body"><div class="carrow"><div class="thumb">${I('car')}</div><div class="facts">
+      <div class="body"><div class="carrow"><div class="thumb">${car.photo ? `<img src="${car.photo}" alt="${esc(car.name)}">` : I('car')}</div><div class="facts">
         <div><b>${car.plate}</b><small>${P('reg')}</small></div><div><b>${car.octa ? new Date(car.octa).toLocaleDateString(a.lang() === 'lv' ? 'lv-LV' : 'en-GB') : '–'}</b><small>${P('octa')}</small></div><div><b>${car.claims3y}</b><small>${P('hist')}</small></div></div></div></div>
       <div class="dash"></div>
       ${x.trips.length === 0 ? `<div class="chipscore" style="cursor:default"><span style="flex:1"><b>${P('car_score')}</b><br><small style="color:#7c7c84">${a.lang() === 'lv' ? 'Vēl nav braucienu — rādītājs parādīsies pēc pirmā brauciena' : 'No rides yet — the score appears after the first ride'}</small></span></div>` : `<button class="chipscore" data-p="car:${car.id}">${mini(x.res.total, c)}<span style="flex:1"><b>${P('car_score')}</b><span class="new">${P('new')}</span><br><small style="color:#7c7c84">${m.discountPct > 0 ? P('octa_minus') + ' −' + m.discountPct + '% · ' + P('save') + ' ' + m.savings + ' €' : P('no_disc_yet')}${others.length ? ' · +' + others.join(', ') : ''}</small></span><span class="red">${I('chev')}</span></button>`}</div>`;
@@ -162,7 +162,7 @@
       : `<div class="costrow"><div><small>${P('no_score')}</small><b class="big">${m.base} €</b></div></div><div style="margin:10px 0 2px"><span class="pill mid">${P('no_disc_yet')}</span> <small style="color:#7c7c84">${P('to_first').replace('{n}', Math.max(1, Math.ceil(50 - total)))}</small></div>${cap ? `<div class="tier"><i style="left:${mark}%"></i></div><div class="tierl"><span>0 · 0%</span><span>50 · 0%</span><span>100 · −25%</span></div>` : ''}`;
   }
   const scoreCard = (r, c, tw) => { const a = A(), conf = r.sigma <= 7 ? 'rel_high' : r.sigma <= 12 ? 'rel_mid' : 'rel_low';
-    return `<div class="pcard"><div class="body"><div class="scorecard"><div class="ring">${a.ring(r.total, c)}<div class="n"><div><b>${a.fmt(r.total, 0)}</b><small>± ${a.fmt(r.sigma, 0)} · ${a.t('of100')}</small></div></div></div>
+    return `<div class="pcard"><div class="body"><div class="scorecard"><div class="ring">${a.ring(r.total, c)}<div class="n"><div><b data-count="${Math.round(r.total)}">${a.fmt(r.total, 0)}</b><small>± ${a.fmt(r.sigma, 0)} · ${a.t('of100')}</small></div></div></div>
       <div><span class="pill ${c}">${a.t('band_' + r.band)}</span><p style="margin:10px 0 2px;font-size:14px"><b>${P('reliab')}:</b> ${P(conf)}</p><small style="color:#7c7c84">${a.fmt(r.kpi.km, 0)} ${P('km')} · ${r.kpi.trips} ${a.t('trips_scored')}</small></div></div></div>
       ${tw ? `<div class="dash"></div><div class="body" style="padding-top:8px"><b style="font-size:15px">${P('d_trend')}</b>${a.trendSvg(tw)}</div>` : ''}</div>`; };
   function drive() {
@@ -363,11 +363,11 @@
     if (st.onboard != null) return `<div class="device"><div class="sb">${SB}</div>${onboarding()}</div><p class="disc">${P('disc')}</p>`;
     const screen = st.trip ? tripScreen() : st.car ? carScreen() : { cars, drive, sp, more }[st.tab]();
     const tabs = [['cars', 'car'], ['drive', 'gauge'], ['sp', 'doc'], ['more', 'dots']].map(([k, ic]) => `<button class="${st.tab === k && !st.trip ? 'on' : ''}" data-p="tab:${k}">${I(ic)}<span>${P('tab_' + k)}</span>${k === 'drive' ? '<i class="dot"></i>' : ''}</button>`).join('');
-    return `<div class="device"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
+    return `<div class="device${st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving ? ' still' : ''}"><div class="sb">${SB}</div><div class="scr">${screen}</div><nav class="tabbar">${tabs}</nav>${sheet()}</div><p class="disc">${P('disc')}</p>`;
   }
   function render() {
     if (!root) return; const sc = root.querySelector('.scr'), y = sc ? sc.scrollTop : 0;
-    root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false;
+    const still = !!(st.addCar || st.kpi || st.bumpOpen || st.crash || st.saving); root.innerHTML = html(); const n = root.querySelector('.scr'); if (n && st._keep) n.scrollTop = y; st._keep = false; if (!still && window.App && App.animateIn) App.animateIn(root);
   }
   function onClick(e) {
     const el = e.target.closest('[data-p]'); if (!el) return; const [act, arg] = el.dataset.p.split(':'), a = A();
