@@ -94,3 +94,9 @@ body.app-mode main{max-width:none;padding:22px 0}
 .ti .d{flex:none;width:26px;height:26px;border-radius:50%;color:#fff;font-style:normal;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 0 0 1px #e3e2ea;position:relative;z-index:1}
 .ti .tt{flex:1;min-width:0;font-size:14px;line-height:1.35}.ti .tt small{color:var(--mute)}.ti .h{font-weight:650;margin-top:1px}.ti .sb{color:var(--mute);font-size:13px}
 .device .scr{isolation:isolate}.tabbar{z-index:6}.fab{z-index:5}
+
+/* advice box colour = score band: green good (>=80), yellow middle (60-79), red bad (<60) */
+.advbox.good{background:var(--good-soft);border-left-color:var(--good)}
+.advbox.mid{background:var(--mid-soft);border-left-color:var(--mid)}
+.advbox.bad{background:var(--bad-soft);border-left-color:var(--bad)}
+.advbox.good b{color:var(--good)}.advbox.mid b{color:#a96a00}.advbox.bad b{color:var(--bad)}

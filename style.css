@@ -66,3 +66,7 @@ select,input[type=number]{background:var(--card);color:var(--ink);border:1px sol
 .phone{width:290px;border:8px solid #2b2a36;border-radius:34px;background:var(--bg);padding:14px;margin:0 auto}
 .phone .screen{display:flex;flex-direction:column;gap:10px;font-size:.85rem}
 @media (max-width:640px){main{padding:10px}.ring{width:140px;height:140px}.ring .n b{font-size:2.1rem}th,td{padding:6px 6px}}
+
+.advice.a-good{border-left-color:var(--good);background:var(--good-soft)}
+.advice.a-mid{border-left-color:var(--mid);background:var(--mid-soft)}
+.advice.a-bad{border-left-color:var(--bad);background:var(--bad-soft)}

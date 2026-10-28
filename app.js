@@ -71,7 +71,7 @@
   /* ---------- advice ---------- */
   function adviceText(res, d) {
     const a = E.advice(res, d.trips), k = res.kpi, A = P.AVG;
-    if (a.gain < 1.5) return { txt: t('adv_ok'), gain: 0 };
+    if (a.gain < 1.5) return { txt: t(res.total < 80 ? 'adv_ok_low' : 'adv_ok'), gain: 0 };
     if (a.worst && a.worst.w === 'dry') a.worst = null;   // "worst in dry" says nothing
     const wl = a.worst ? t(a.worst.w) : '';
     const p = { pct: fmt(k.overSafePct, 0), worst: a.worst, wl: wl.toLowerCase(), worstv: a.worst ? fmt(a.worst.val, 0) : '', ev: k.phoneEv, rate: a.key === 'phone' ? fmt(k.phonePerHour) : fmt(k.harshPer100), avg: fmt(A.harshPer100), fat: k.fatigue, night: fmt(k.nightShare * 100, 0) };
@@ -108,7 +108,7 @@
       <div style="flex:1;min-width:240px"><h2>${esc(d.name)} <span class="badge b-${c}">${t('band_' + r.band)}</span></h2>
       <p class="mute" style="margin:.2em 0">${d.note ? esc(d.note[lang]) : ''}</p>
       <div class="row" style="gap:8px;margin-top:8px"><span class="badge b-info">${t('exp_level')}: ${fmt(d.expHours, 0)} ${t('hours')} (${t('est')})</span><span class="badge b-mute">${t('conf')}: ${t(conf)}</span><span class="badge b-mute">${fmt(k.km, 0)} ${t('measured_km')}</span><span class="badge b-mute">${k.trips} ${t('trips_scored')} · ${k.excluded} ${t('trips_excl')}</span></div></div></div>
-    <div class="card advice" style="margin-top:14px"><b>${t('advice_t')}</b><p>${esc(adv.txt)}</p>${adv.gain ? `<small class="note">${t('gain')} +${fmt(adv.gain, 0)} ${t('pts')}</small>` : ''}</div>
+    <div class="card advice a-${c}" style="margin-top:14px"><b>${t('advice_t')}</b><p>${esc(adv.txt)}</p>${adv.gain ? `<small class="note">${t('gain')} +${fmt(adv.gain, 0)} ${t('pts')}</small>` : ''}</div>
     <h2 style="margin-top:20px">KPI</h2><div class="grid g3">${cards}</div>
     <div class="grid g2" style="margin-top:14px"><div class="card"><h3>${t('trend')}</h3>${trendSvg(tw)}</div>
       <div class="card"><h3>${t('by_cond')}</h3><table><thead><tr><th></th><th class="num">km</th><th class="num">${t('harsh_per100')}</th><th class="num">${t('over_safe')}</th></tr></thead><tbody>${bw}</tbody></table></div></div>

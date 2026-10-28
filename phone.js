@@ -176,7 +176,7 @@
       <div class="dash"></div><div class="body bgrow"><span class="live"></span><div style="font-size:14px;line-height:1.4"><b>${P('bg_on')}</b><br><span style="color:#7c7c84">${P('bg_txt')}${last ? ' ' + P('bg_last') + ' ' + dt(last.startISO) : ''}</span></div></div></div>
     <h2>${P('my_cars')} · ${P('car_score')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${carRows}</div></div>
     <h2>${P('you_driver')}</h2><p class="lead" style="font-size:14.5px;margin-bottom:10px">${P('you_lead')}</p>${scoreCard(r, c, tw)}
-    <h2>${P('why_t')}</h2><div class="advbox"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>
+    <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>
     ${plan(r, d).length ? `<h2>${P('save_more')}</h2>${planHtml(plan(r, d))}` : ''}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp)}</div></div>
     <h2>${P('d_exp')}</h2><div class="pcard"><div class="body"><div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:26px">${a.fmt(d.expHours, 0)}</b><span>${P('hours_wheel')}</span></div>
@@ -195,7 +195,7 @@
     <div class="pcard"><div class="body"><small style="color:#7c7c84">${P('octa_cost')}</small>${priceHero(r.total, true)}</div></div>
     ${scoreCard(r, c, null)}
     <h2>${P('who_drives')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${x.drivers.length > 1 ? drows : `<div class="lrow" style="cursor:default"><span class="t"><b>${P('only_you')}</b></span></div>`}</div></div><p class="disc" style="text-align:left;margin:6px 0 0">${P('other_consent')}</p>
-    <h2>${P('why_t')}</h2><div class="advbox"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>${planHtml(plan(r))}
+    <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>${planHtml(plan(r))}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp.slice(0, 5))}</div></div>
     <h2>${P('car_trips')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${tripRows(trips, d)}</div></div>`;
   }
