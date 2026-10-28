@@ -1,6 +1,6 @@
 # Parking and low-speed manoeuvres — how we could track them
 
-Status: **design proposal** (not in the prototype yet). Asked by the team 28.10.
+Status: **in the prototype as a synthetic demo** (parking KPI, P key points on the trip timeline, "possible contact" prompt). Real detection is still a proposal. Asked by the team 28.10.
 
 ## Why it matters
 - Parking is where many small claims happen. BTA (Latvian insurer, 12 Mar 2026): CASCO claims for cars damaged in parking lots at shops, offices and residential buildings **rose 22 % in 2025**; average claim **€934**, largest in 3 years **€18,392** (leaving a space and hitting another car). The most common causes: **reversing and leaving a space**, plus inattention (handbrake not set, pedal mix-up — two cases ~€9,000 each). Winter: fewer but costlier claims (ice).

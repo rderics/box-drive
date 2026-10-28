@@ -34,6 +34,9 @@
       tl_start: 'Sākums', tl_end: 'Beigas', map_t: 'Maršruta karte', map_note: 'Shematisks maršruts, rekonstruēts no ātruma un sānu pārslodzes — GPS vēsturi neglabājam. Skaitļi atbilst notikumiem zemāk.',
       r_ok: 'Ātrums kārtībā', r_near: 'Virs limita', r_bad: 'Virs droša ātruma apstākļiem', ev_t: 'Kas notika braucienā', ev_speed: 'Ātruma pārsniegšana', no_events: 'Šajā braucienā nekas īpašs nenotika.', speed_t: 'Ātrums laikā',
       thr: 'slieksnis', lat: 'sānu', phone_hand: 'telefons rokās', limit: 'limits',
+      lot_leave: 'Izbraukšana no stāvvietas', lot_park: 'Novietošana stāvvietā', dirchg: 'virziena maiņas', ev_surge: 'Pēkšņa paātrināšanās no vietas', ev_bump: 'Iespējams pieskāriens', bump_ask: 'Vai kaut ko aizskāri?',
+      bump_h: 'Iespējams pieskāriens', bump_q: 'Telefons pamanīja zema ātruma triecienu stāvvietā. Vai kaut ko aizskāri?', bump_what: 'Trieciens', bump_photo: 'Pievienot foto un sākt SP', bump_no: 'Nē (apmale / bedre)',
+      tip_parking: 'Izvēlies stāvvietu, kurā var iebraukt vienā piegājienā; izbraucot atpakaļgaitā turi gājēja ātrumu',
       week: 'nedēļa', base: 'Bāze', weight: 'svars', mode_train: 'Vilciens', mode_car: 'Auto',
     },
     en: {
@@ -68,6 +71,9 @@
       tl_start: 'Start', tl_end: 'End', map_t: 'Route map', map_note: 'Schematic route reconstructed from speed and lateral g — we do not store GPS history. Numbers match the events below.',
       r_ok: 'Speed OK', r_near: 'Over the limit', r_bad: 'Over the safe speed for conditions', ev_t: 'What happened on the trip', ev_speed: 'Speeding', no_events: 'Nothing notable happened on this trip.', speed_t: 'Speed over time',
       thr: 'threshold', lat: 'lateral', phone_hand: 'phone in hand', limit: 'limit',
+      lot_leave: 'Leaving the parking space', lot_park: 'Parking', dirchg: 'direction changes', ev_surge: 'Sudden surge from standstill', ev_bump: 'Possible contact', bump_ask: 'Did you touch something?',
+      bump_h: 'Possible contact', bump_q: 'The phone noticed a low-speed impact in the parking area. Did you touch something?', bump_what: 'Impact', bump_photo: 'Add a photo and start the statement', bump_no: 'No (kerb / pothole)',
+      tip_parking: 'Choose a space you can enter in one go; keep to walking pace when reversing out',
       week: 'week', base: 'Base', weight: 'weight', mode_train: 'Train', mode_car: 'Car',
     },
   };
@@ -93,11 +99,12 @@
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
     cloud: '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 18z"/>',
     warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
+    park: '<circle cx="12" cy="12" r="9"/><path d="M10 17V8h3a2.5 2.5 0 0 1 0 5h-3"/>',
     lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   };
   const I = (n, s) => `<svg class="ico" viewBox="0 0 24 24" ${s ? `style="width:${s}px;height:${s}px"` : ''} aria-hidden="true">${PATH[n]}</svg>`;
   const A = () => window.App, lang = () => A().lang(), P = (k) => L[lang()][k] != null ? L[lang()][k] : L.lv[k];
-  const st = { ev: null, car: null, onboard: null, tab: 'cars', trip: null, kpi: null, crash: false, auto: true, share: true };
+  const st = { bumpOpen: false, bumpEv: null, ev: null, car: null, onboard: null, tab: 'cars', trip: null, kpi: null, crash: false, auto: true, share: true };
   let root = null;
 
   const dt = (iso) => { const d = new Date(Date.parse(iso) + 3 * 3600e3); const p = (n) => String(n).padStart(2, '0'); return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}. ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
@@ -112,6 +119,7 @@
       { key: 'speeding', icon: 'gauge', value: f(k.overSafePct) + '%', base: `${a.t('avg')}: ${AVG.overSafePct}% · ${ratio(k.overSafePct, AVG.overSafePct)}`, s: r.scores.speeding },
       { key: 'phone', icon: 'phone', value: f(k.phonePerHour) + ' ' + a.t('perh'), base: `${a.t('avg')}: ${AVG.phonePerHour} · ${ratio(k.phonePerHour, AVG.phonePerHour)}`, s: r.scores.phone },
       { key: 'smooth', icon: 'zap', value: f(k.harshPer100) + ' ' + a.t('per100'), base: `${a.t('avg')}: ${AVG.harshPer100} · ${ratio(k.harshPer100, AVG.harshPer100)}`, s: r.scores.smooth },
+      { key: 'parking', icon: 'park', value: f(k.cyclesPer) + ' ' + a.t('per_park'), base: `${a.t('avg')}: ${AVG.parkCycles} · ${ratio(k.cyclesPer, AVG.parkCycles)}`, s: r.scores.parking },
       { key: 'nightfatigue', icon: 'moon', value: f(k.nightShare * 100, 0) + '% · ' + k.fatigue + '×', base: `${a.t('avg')}: ${AVG.nightShare * 100}%`, s: r.scores.nightfatigue },
       { key: 'claims', icon: 'shield', value: r.claims + ' / 3 ' + a.t('yr'), base: 'LTAB', s: r.scores.claims },
     ];
@@ -140,8 +148,8 @@
     return eur;
   }
   function plan(r, d) {
-    const a = A(), W = r.weights || a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon' };
-    return ['speeding', 'phone', 'smooth', 'nightfatigue'].map((k) => {
+    const a = A(), W = r.weights || a.P.weights, tip = { speeding: 'tip_speeding', phone: 'tip_phone', smooth: 'tip_smooth', nightfatigue: 'tip_night', parking: 'tip_parking' }, ic = { speeding: 'gauge', phone: 'phone', smooth: 'zap', nightfatigue: 'moon', parking: 'park' };
+    return ['speeding', 'phone', 'smooth', 'nightfatigue', 'parking'].map((k) => {
       const pts = W[k] * (100 - r.scores[k]) / 100;
       return { k, pts, eur: d ? planEur(d, pts) : money(r.total).eur - money(Math.min(100, r.total + pts)).eur, tip: P(tip[k]), icon: ic[k] };
     }).filter((x) => x.pts >= 1).sort((x, y) => y.eur - x.eur || y.pts - x.pts).slice(0, 3);
@@ -187,7 +195,7 @@
   function carScreen() {
     const a = A(), { d } = data(), car = a.D.cars.find((x) => x.id === st.car); if (!car) { st.car = null; return drive(); }
     const x = a.carRes(car), r = x.res, c = a.col(r.total), kp = kpis(r), adv = a.adviceText(r, { trips: x.trips });
-    kp[4].base = 'LTAB · ' + car.name;
+    kp.find((y) => y.key === 'claims').base = 'LTAB · ' + car.name;
     const drows = x.drivers.map((k) => `<div class="lrow" style="cursor:default"><span class="t"><b>${k.d.id === d.id ? P('you') : esc(k.d.name)}</b><small>${a.fmt(k.share * 100, 0)}% ${P('share')} · ${P('own_score')} ${a.fmt(k.res.total, 0)}</small>${mbar(k.share * 100, 'brand')}</span><span class="v" style="color:var(--${k.impact >= 0 ? 'good' : 'bad'})">${k.impact >= 0 ? '+' : ''}${a.fmt(k.impact, 0)}<small>${P('impact')}</small></span></div>`).join('');
     const trips = x.trips.slice().sort((p, q) => Date.parse(q.startISO) - Date.parse(p.startISO)).slice(0, 6);
     return `<button class="backrow" data-p="backcar">${I('back', 22)} ${P('tab_drive')}</button><h1 class="sm">${car.name}</h1><div style="color:#7c7c84;margin:-4px 0 12px">${car.plate}</div>
@@ -196,7 +204,7 @@
     ${scoreCard(r, c, null)}
     <h2>${P('who_drives')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${x.drivers.length > 1 ? drows : `<div class="lrow" style="cursor:default"><span class="t"><b>${P('only_you')}</b></span></div>`}</div></div><p class="disc" style="text-align:left;margin:6px 0 0">${P('other_consent')}</p>
     <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>${planHtml(plan(r))}
-    <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp.slice(0, 5))}</div></div>
+    <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp)}</div></div>
     <h2>${P('car_trips')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${tripRows(trips, d)}</div></div>`;
   }
   const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -215,7 +223,9 @@
   const pad2 = (n) => String(n).padStart(2, '0');
   const clock = (iso, sec) => { const d = new Date(Date.parse(iso) + 3 * 3600e3 + sec * 1000); return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`; };
   const mmss = (s) => `${Math.floor(s / 60)}:${pad2(Math.round(s % 60))}`;
-  const EVC = { brake: '#b3282d', accel: '#d98a00', corner: '#2b6cdf', phone: '#232227', speed: '#7a3fb0' };
+  const EVC = { brake: '#b3282d', accel: '#d98a00', corner: '#2b6cdf', phone: '#232227', speed: '#7a3fb0', lot: '#5f6b7a', surge: '#e67e22', bump: '#d6336c' };
+  let lastKp = [], lastT = null;
+  const evTitle = (e, a) => (e.type === 'speed' ? P('ev_speed') : e.type === 'lot' ? e.title : e.type === 'surge' ? P('ev_surge') : e.type === 'bump' ? P('ev_bump') : a.t('ev_' + e.type));
   /* key points of a trip, in time order: the harsh events from the summary + speeding episodes found in the trace */
   function keyPoints(t, tr, step) {
     const a = A(), safe = a.P.safeFactor[t.weather] || 1, thr = a.P.brakeG[t.weather] || 0.3, out = [], last = tr.v.length - 1;
@@ -225,6 +235,9 @@
       if (e.type === 'brake') out.push({ sec: e.i, j, type: 'brake', sub: `${v0} → ${v1} km/h · −${g2(e.g)} g · ${P('thr')} ${g2(thr)} g (${a.t(t.weather).toLowerCase()})` });
       else if (e.type === 'accel') out.push({ sec: e.i, j, type: 'accel', sub: `${v0} → ${v1} km/h · +${g2(e.g)} g` });
       else if (e.type === 'corner') out.push({ sec: e.i, j, type: 'corner', sub: `${P('lat')} ${g2(e.g)} g · ${v1} km/h` });
+      else if (e.type === 'lot') out.push({ sec: e.i, j, type: 'lot', title: P(e.kind === 'leave' ? 'lot_leave' : 'lot_park'), sub: `${e.dur} s · ${e.cycles} ${P('dirchg')} · ${P('up_to')} ${e.vmax} km/h` });
+      else if (e.type === 'surge') out.push({ sec: e.i, j, type: 'surge', sub: `${v0} → ${v1} km/h · +${g2(e.g)} g` });
+      else if (e.type === 'bump') out.push({ sec: e.i, j, type: 'bump', sub: `≈ ${g2(e.g)} g · ${v0} km/h`, ask: true });
       else if (e.type === 'phone') { let n = 0; while (j + n < last && tr.phone && tr.phone[j + n] && tr.v[j + n] > 5) n++; out.push({ sec: e.i, j, type: 'phone', sub: `${P('phone_hand')} ${Math.max(1, Math.round(n * step))} s · ${v1} km/h` }); }
     }
     let s0 = -1, vm = 0;
@@ -260,13 +273,14 @@
     let body = `<p class="lead" style="font-size:14px">${a.t('no_trace')}</p>`;
     if (raw) {
       const tr = a.rawToTrip(raw, { id: t.id }), step = raw.step || 1, kp = t.counted ? keyPoints(t, tr, step) : [], dur = t.durationS;
+      lastKp = kp; lastT = t;
       const sel = st.ev != null && st.ev < kp.length ? st.ev : null;
       const tl = `<div class="tl"><div class="ti"><i class="d" style="background:#1f9d63">A</i><div class="tt"><div><b>${clock(t.startISO, 0)}</b> <small>${P('tl_start')}</small></div></div></div>
-        ${kp.map((e, n) => `<button class="ti ev ${sel === n ? 'sel' : ''}" data-p="ev:${n}"><i class="d" style="background:${EVC[e.type]}">${n + 1}</i><div class="tt"><div><b>${clock(t.startISO, e.sec)}</b> <small>+${mmss(e.sec)}</small></div><div class="h">${e.type === 'speed' ? P('ev_speed') : a.t('ev_' + e.type)}</div><div class="sb">${e.sub}</div></div></button>`).join('') || `<div class="ti"><i class="d" style="background:#cfcdd8"></i><div class="tt"><div class="sb">${P('no_events')}</div></div></div>`}
+        ${kp.map((e, n) => `<button class="ti ev ${sel === n ? 'sel' : ''}" data-p="ev:${n}"><i class="d" style="background:${EVC[e.type]}">${n + 1}</i><div class="tt"><div><b>${clock(t.startISO, e.sec)}</b> <small>+${mmss(e.sec)}</small></div><div class="h">${evTitle(e, a)}</div><div class="sb">${e.sub}</div>${e.ask ? `<span class="pill mute" data-p="bump:${n}" style="cursor:pointer;background:var(--brand-soft);color:var(--brand);margin-top:4px">${P('bump_ask')}</span>` : ''}</div></button>`).join('') || `<div class="ti"><i class="d" style="background:#cfcdd8"></i><div class="tt"><div class="sb">${P('no_events')}</div></div></div>`}
         <div class="ti"><i class="d" style="background:#232227">B</i><div class="tt"><div><b>${clock(t.startISO, dur)}</b> <small>${P('tl_end')} · ${a.fmt(t.km)} km · ${a.fmt(dur / 60, 0)} min</small></div></div></div></div>`;
       body = `<h2 style="margin-top:6px">${P('map_t')}</h2>${routeMap(t, tr, kp, sel)}<p class="disc" style="text-align:left;margin:6px 0 0">${P('map_note')}</p>
         <h2>${P('ev_t')} · ${kp.length}</h2><div class="pcard"><div class="body" style="padding:12px 14px">${tl}</div></div>
-        <h2>${P('speed_t')}</h2><div class="pcard"><div class="body">${a.speedChart(tr, kp.filter((e) => e.type !== 'speed').map((e) => ({ i: e.j, type: e.type })))}</div></div>`;
+        <h2>${P('speed_t')}</h2><div class="pcard"><div class="body">${a.speedChart(tr, kp.filter((e) => ['brake', 'accel', 'corner', 'phone'].includes(e.type)).map((e) => ({ i: e.j, type: e.type })))}</div></div>`;
     }
     return `<button class="backrow" data-p="back">${I('back', 22)} ${st.car ? (car ? car.name : P('tab_drive')) : P('tab_drive')}</button><h1 class="sm">${dt(t.startISO)}</h1>
     <div class="pcard"><div class="body"><div style="display:flex;gap:16px;flex-wrap:wrap"><div><b style="font-size:20px">${a.fmt(t.km)}</b><br><small style="color:#7c7c84">${P('km')}</small></div><div><b style="font-size:20px">${a.fmt(t.durationS / 60, 0)}</b><br><small style="color:#7c7c84">min</small></div><div><b style="font-size:20px">${a.t(t.weather)}</b><br><small style="color:#7c7c84">${a.t('weather')}</small></div>${car ? `<div><b style="font-size:20px">${car.name.split(' ').slice(-1)[0]}</b><br><small style="color:#7c7c84">${P('car_score')}</small></div>` : ''}</div></div></div>
@@ -293,6 +307,11 @@
       return `<div class="sheetbg" data-p="close"><div class="sheet" data-p="stop"><div class="grab"></div><h3>${a.t('k_' + st.kpi)}</h3><div style="font-size:30px;font-weight:700;color:var(--${a.col(k.s)})">${k.value}</div><div style="color:#7c7c84;margin:2px 0 8px">${k.base}</div>${mbar(k.s, a.col(k.s))}
         <p style="margin:14px 0 6px;line-height:1.45">${a.t('c_' + st.kpi)}</p><table><tr><td>${P('weight')}</td><td>${w}%</td></tr><tr><td>${a.t('k_' + st.kpi)}</td><td>${a.fmt(k.s, 0)} / 100</td></tr></table>
         <div style="margin-top:14px"><button class="pbtn" data-p="close">OK</button></div></div></div>`;
+    }
+    if (st.bumpOpen && st.bumpEv) {
+      return `<div class="sheetbg"><div class="sheet" data-p="stop"><div class="grab"></div><h3 class="red">${I('warn', 22)} ${P('bump_h')}</h3><p style="margin:4px 0 8px;line-height:1.45">${P('bump_q')}</p>
+        <table><tr><td>${P('c_when')}</td><td>${st.bumpEv.time}</td></tr><tr><td>${P('bump_what')}</td><td>${st.bumpEv.sub}</td></tr></table>
+        <p style="color:#7c7c84;font-size:13px">${P('c_note')}</p><button class="pbtn" data-p="close">${P('bump_photo')}</button><div style="height:10px"></div><button class="pbtn out" data-p="close">${P('bump_no')}</button></div></div>`;
     }
     if (st.crash) {
       const now = new Date(), p = (n) => String(n).padStart(2, '0');
@@ -325,8 +344,9 @@
     else if (act === 'car') { st.car = arg; st.trip = null; }
     else if (act === 'backcar') { st.car = null; }
     else if (act === 'ob-next') { if (st.onboard >= 2) { st.onboard = null; st.tab = 'cars'; } else st.onboard++; }
-    else if (act === 'close') { st.kpi = null; st.crash = false; st._keep = true; }
+    else if (act === 'close') { st.kpi = null; st.crash = false; st.bumpOpen = false; st._keep = true; }
     else if (act === 'crash') st.crash = true;
+    else if (act === 'bump') { const e = lastKp[+arg]; if (e && lastT) { st.bumpEv = { time: clock(lastT.startISO, e.sec), sub: e.sub }; st.bumpOpen = true; } }
     else if (act === 'crash-ok') { st.crash = false; }
     else if (act === 'sw') { st[arg] = !st[arg]; st._keep = true; }
     else if (act === 'lang') { a.setLang(a.lang() === 'lv' ? 'en' : 'lv'); return; }

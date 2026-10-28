@@ -74,7 +74,7 @@
     if (a.gain < 1.5) return { txt: t(res.total < 80 ? 'adv_ok_low' : 'adv_ok'), gain: 0 };
     if (a.worst && a.worst.w === 'dry') a.worst = null;   // "worst in dry" says nothing
     const wl = a.worst ? t(a.worst.w) : '';
-    const p = { pct: fmt(k.overSafePct, 0), worst: a.worst, wl: wl.toLowerCase(), worstv: a.worst ? fmt(a.worst.val, 0) : '', ev: k.phoneEv, rate: a.key === 'phone' ? fmt(k.phonePerHour) : fmt(k.harshPer100), avg: fmt(A.harshPer100), fat: k.fatigue, night: fmt(k.nightShare * 100, 0) };
+    const p = { cyc: fmt(k.cyclesPer), lotover: fmt(k.lotOverPct, 0), surge: k.surge, pct: fmt(k.overSafePct, 0), worst: a.worst, wl: wl.toLowerCase(), worstv: a.worst ? fmt(a.worst.val, 0) : '', ev: k.phoneEv, rate: a.key === 'phone' ? fmt(k.phonePerHour) : fmt(k.harshPer100), avg: fmt(A.harshPer100), fat: k.fatigue, night: fmt(k.nightShare * 100, 0) };
     return { txt: t('adv_' + a.key)(p), gain: a.gain };
   }
 
@@ -94,6 +94,7 @@
       kpiCard('speeding', fmt(k.overSafePct) + '%', `${t('avg')}: ${A.overSafePct}% · ${ratio(k.overSafePct, A.overSafePct)}`, t('c_speeding'), r.scores.speeding),
       kpiCard('phone', fmt(k.phonePerHour) + ' ' + t('perh'), `${t('avg')}: ${A.phonePerHour} · ${ratio(k.phonePerHour, A.phonePerHour)}`, t('c_phone'), r.scores.phone),
       kpiCard('smooth', fmt(k.harshPer100) + ' ' + t('per100'), `${t('avg')}: ${A.harshPer100} · ${ratio(k.harshPer100, A.harshPer100)}`, t('c_smooth'), r.scores.smooth),
+      kpiCard('parking', fmt(k.cyclesPer) + ' ' + t('per_park'), `${t('avg')}: ${A.parkCycles}`, t('c_parking'), r.scores.parking),
       kpiCard('nightfatigue', fmt(k.nightShare * 100, 0) + '% night · ' + k.fatigue + ' long', `${t('avg')}: ${A.nightShare * 100}%`, t('c_nightfatigue'), r.scores.nightfatigue),
       kpiCard('claims', r.claims + ' / 3 ' + t('yr'), 'LTAB / insurer', t('c_claims'), r.scores.claims),
       kpiCard('experience', fmt(r.effHours, 0) + ' ' + t('hours'), `${d.licYears != null ? fmt(d.licYears, d.licYears < 1 ? 1 : 0) + ' ' + t('years_lic') : ''}`, t('c_experience'), r.scores.experience),
@@ -134,7 +135,7 @@
   function insurerView() {
     const cs = (D.cars || []).map((c) => ({ c, x: carRes(c) })).sort((a, b) => b.x.res.total - a.x.res.total);
     const rows = cs.map(({ c, x }) => {
-      const r = x.res, bw = ['speeding', 'phone', 'smooth', 'nightfatigue'], beh = bw.reduce((s, k) => s + r.weights[k] * r.scores[k], 0) / bw.reduce((s, k) => s + r.weights[k], 0), pr = E.premiumPreview(r.total), cc = col(r.total);
+      const r = x.res, bw = ['speeding', 'phone', 'smooth', 'nightfatigue', 'parking'], beh = bw.reduce((s, k) => s + r.weights[k] * r.scores[k], 0) / bw.reduce((s, k) => s + r.weights[k], 0), pr = E.premiumPreview(r.total), cc = col(r.total);
       return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
         <td><b style="color:${cvar(cc)}">${fmt(r.total, 0)}</b> <small>± ${fmt(r.sigma, 0)}</small></td><td><span class="badge b-${cc}">${t('band_' + r.band)}</span></td>
         <td style="min-width:110px">${bar(beh)}</td><td style="min-width:90px">${bar(r.scores.claims)}</td><td class="num">${pr.eur} € <small>−${pr.discountPct}%</small></td></tr>`;

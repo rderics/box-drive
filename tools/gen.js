@@ -10,6 +10,18 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
 const U = (r, a, b) => a + (b - a) * r();
 const N = (r) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
 
+/* parking phase (1 Hz): stop-go manoeuvres; Bp = {tries, speed, pSurge, pBump}. Own RNG stream so the rest of the simulation is unchanged. */
+function lotPhase(rp, Bp) {
+  const v = [], bump = [], cycles = Math.max(1, Math.round(Bp.tries * U(rp, 0.6, 1.5)));
+  for (let c = 0; c < cycles; c++) {
+    const top = Math.max(5, Bp.speed * U(rp, 0.6, 1.2));
+    if (rp() < Bp.pSurge) v.push(0, top + 14, top + 14, top * 0.4, 0, 0);          // pedal mix-up: sudden jump from standstill
+    else v.push(0, top * 0.5, top, top, top * 0.6, top * 0.2, 0, 0);
+    if (rp() < Bp.pBump) { v.push(top * 0.3, 0); bump.push({ i: v.length - 1, g: Math.round(U(rp, 0.18, 0.5) * 100) / 100 }); v.push(0); }
+  }
+  return { v: v.map((x) => Math.round(x * 10) / 10), ay: v.map(() => Math.round(U(rp, -0.05, 0.05) * 100) / 100), lim: v.map(() => 15), phone: v.map(() => 0), bump };
+}
+
 /* kinematic trip simulator: segments with limits and (maybe) stops; behaviour parameters decide how "human" it is */
 function simulate(cfg, r) {
   const dt = 1 / (cfg.hz || 1), B = cfg.beh, safeF = E.P.safeFactor[cfg.weather];
@@ -52,6 +64,11 @@ function simulate(cfg, r) {
     }
     if (seg.stop) { const dwell = Math.round(U(r, 6, 22) / dt); for (let i = 0; i < dwell; i++) { v.push(0); ay.push(0); lim.push(seg.lim); phone.push(r() < 0.25 ? 1 : 0); } speed = 0; }
   }
+  if (cfg.rp && B.park) {
+    const L = lotPhase(cfg.rp, B.park), Pk = lotPhase(cfg.rp, B.park), n0 = v.length, off = L.v.length + n0;
+    return { v: [...L.v, ...v, ...Pk.v], ay: [...L.ay, ...ay, ...Pk.ay], lim: [...L.lim, ...lim, ...Pk.lim], phone: [...L.phone, ...phone, ...Pk.phone],
+      lot: [[0, L.v.length], [off, off + Pk.v.length]], bump: L.bump.concat(Pk.bump.map((b) => ({ i: b.i + off, g: b.g }))) };
+  }
   return { v, ay, lim, phone };
 }
 
@@ -92,19 +109,19 @@ const dow = (day) => (new Date(D0 + day * 864e5).getUTCDay() + 6) % 7; // 0 = Mo
 const DRIVERS = [
   { id: 'martins', name: 'Mārtiņš K.', licYears: 5, expHours: 150, expBuckets: { city: 110, highway: 30, night: 5, badweather: 8 }, claims3y: 0, seed: 11,
     note: { en: 'Licensed 5 years, but drives mostly at weekends.', lv: 'Tiesības 5 gadus, bet brauc galvenokārt brīvdienās.' },
-    beh: { over: 0.08, speedProb: 0.07, pHarsh: 0.03, pHardAcc: 0.015, phone: 1.0, corner: 0.02, care: 0.8 },
+    beh: { over: 0.08, speedProb: 0.07, pHarsh: 0.03, pHardAcc: 0.015, phone: 1.0, corner: 0.02, care: 0.8 , park: { tries: 1.2, speed: 5, pSurge: 0.01, pBump: 0.01 } },
     plan(day) { const d = dow(day); const t = []; if (d === 5) t.push([11, 0, 'city', 8, 'free']); if (d === 6) t.push([16, 0, 'mixed', 25, 'free']); if (d === 2) t.push([18, 30, 'city', 6, 'dense']); return t; } },
   { id: 'elina', name: 'Elīna B.', licYears: 2, expHours: 800, expBuckets: { city: 420, highway: 260, night: 60, badweather: 90 }, claims3y: 0, seed: 22,
     note: { en: 'Licensed only 2 years, but drives to work every day.', lv: 'Tiesības tikai 2 gadus, bet katru dienu brauc uz darbu.' },
-    beh: { over: 0.0, speedProb: 0.0, pHarsh: 0.004, pHardAcc: 0.002, phone: 0.0, corner: 0.004, care: 0.95 },
+    beh: { over: 0.0, speedProb: 0.0, pHarsh: 0.004, pHardAcc: 0.002, phone: 0.0, corner: 0.004, care: 0.95 , park: { tries: 1.0, speed: 4, pSurge: 0.0, pBump: 0.002 } },
     plan(day) { const d = dow(day); const t = []; if (d < 5) { t.push([7, 40, 'mixed', 18, 'dense']); t.push([17, 20, 'mixed', 18, 'dense']); } if (d === 5 && day % 2 === 0) t.push([12, 0, 'highway', 30, 'free']); return t; } },
   { id: 'davis', name: 'Dāvis R.', licYears: 0.33, expHours: 25, expBuckets: { city: 20, highway: 3, night: 2, badweather: 0 }, claims3y: 0, seed: 33,
     note: { en: 'New driver (4 months), drives fast, often at night.', lv: 'Jauns braucējs (4 mēneši), brauc ātri, bieži naktīs.' },
-    beh: { over: 0.25, speedProb: 0.65, pHarsh: 0.14, pHardAcc: 0.07, phone: 3.0, corner: 0.10, care: 0.0 },
+    beh: { over: 0.25, speedProb: 0.65, pHarsh: 0.14, pHardAcc: 0.07, phone: 3.0, corner: 0.10, care: 0.0 , park: { tries: 3.2, speed: 9, pSurge: 0.05, pBump: 0.03 } },
     plan(day) { const d = dow(day); const t = []; if (d === 4 || d === 5) t.push([23, 20, 'city', 12, 'free']); if (d === 0 || d === 2 || d === 3) t.push([8, 10, 'city', 9, 'dense']); return t; } },
   { id: 'aivars', name: 'Aivars S.', licYears: 20, expHours: 12000, expBuckets: { city: 5000, highway: 5000, night: 1200, badweather: 800 }, claims3y: 1, seed: 44,
     note: { en: 'Licensed 20 years, night shifts — experience is no guarantee of safe habits.', lv: 'Tiesības 20 gadus, nakts maiņas — pieredze negarantē drošus ieradumus.' },
-    beh: { over: 0.12, speedProb: 0.12, pHarsh: 0.05, pHardAcc: 0.03, phone: 2.0, corner: 0.03, care: 0.5 },
+    beh: { over: 0.12, speedProb: 0.12, pHarsh: 0.05, pHardAcc: 0.03, phone: 2.0, corner: 0.03, care: 0.5 , park: { tries: 2.0, speed: 7, pSurge: 0.02, pBump: 0.012 } },
     plan(day) { const d = dow(day); const t = []; if (d < 5) { t.push([4, 40, 'highway', 40, 'free']); t.push([15, 30, 'mixed', 40, 'free']); } if (d === 5 && day < 7) t.push([10, 0, 'highway', 170, 'free']); return t; } },
 ];
 
@@ -116,7 +133,7 @@ for (const dr of DRIVERS) {
   const r = mulberry32(dr.seed); const trips = []; let n = 0; const rawKeep = {};
   const add = (day, h, m, road, km, traffic, extra) => {
     const weather = weatherOf(day);
-    const sim = simulate({ road, km, weather, traffic, hz: 1, beh: dr.beh }, r);
+    const sim = simulate({ road, km, weather, traffic, hz: 1, beh: dr.beh, rp: mulberry32(dr.seed * 1000 + n) }, r);
     const raw = Object.assign({ id: dr.id + '-' + (++n), startISO: startISO(day, h, m), hz: 1, mode: 'car', modeConf: 0.97, roleConf: 0.95, confirmed: true, weather, traffic, roadType: road }, sim, extra || {});
     const s = E.analyzeTrip(raw); trips.push(s); rawKeep[s.id] = raw;
   };

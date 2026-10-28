@@ -50,3 +50,14 @@ const rn = E.scoreDriver([], { expHours: 0 }), rv = E.scoreDriver([], { expHours
 assert(rn.weights.experience > 30 && rv.weights.experience < 12 && rn.weights.experience > rv.weights.experience);
 for (const r of [rn, rv]) assert(Math.abs(Object.values(r.weights).reduce((a, b) => a + b, 0) - 100) < 1e-9, 'weights sum to 100');
 console.log('experience weight tests passed');
+
+// 10. parking: counted inside parking areas only (no double counting), cycles/surge/contact detected
+const lotTrip = { id: 'p', startISO: '2026-10-20T09:00:00Z', hz: 1, mode: 'car', roleConf: 1, confirmed: true, weather: 'dry', traffic: 'free',
+  v: [0, 3, 6, 6, 0, 0, 2.5, 5, 5, 0, 0, 20, 20, 0, 0], ay: Array(15).fill(0), lim: Array(15).fill(15), phone: Array(15).fill(0), lot: [[0, 15]], bump: [{ i: 9, g: 0.3 }] };
+const lt = E.analyzeTrip(lotTrip);
+assert.strictEqual(lt.parkings, 1); assert.strictEqual(lt.lotCycles, 3, 'three stop-go cycles'); assert.strictEqual(lt.surge, 1, 'surge from standstill'); assert.strictEqual(lt.bump, 1);
+assert.strictEqual(lt.accel, 0, 'surge inside a lot is not also counted as a harsh acceleration'); assert.strictEqual(lt.overSafeS, 0, 'lot speed not counted as speeding');
+const pBad = E.scoreDriver([lt], { expHours: 300 }).scores.parking, pOk = E.scoreDriver([Object.assign({}, lt, { lotCycles: 1, surge: 0, lotOverS: 0 })], { expHours: 300 }).scores.parking;
+assert(pBad < pOk && pOk > 90, 'parking score reacts');
+assert(Math.abs(Object.values(E.scoreDriver([], { expHours: 0 }).weights).reduce((a, b) => a + b, 0) - 100) < 1e-9);
+console.log('parking tests passed');
