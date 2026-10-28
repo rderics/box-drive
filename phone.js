@@ -169,8 +169,8 @@
       ${tw ? `<div class="dash"></div><div class="body" style="padding-top:8px"><b style="font-size:15px">${P('d_trend')}</b>${a.trendSvg(tw)}</div>` : ''}</div>`; };
   /* Proposed partner reward (fictional): keep the driver score at 80+ for a half-year -> -30 % fuel for the next half-year. Illustrative only. */
   function circleK(r) {
-    const a = A(), now = new Date(), y = now.getFullYear(), h2 = now.getMonth() >= 6, DAY = 864e5, TOT = 182, TH = 80;
-    const days = Math.max(1, Math.min(TOT, Math.floor((Date.UTC(y, now.getMonth(), now.getDate()) - Date.UTC(y, h2 ? 6 : 0, 1)) / DAY) + 1)), sc = Math.round(r.total), ok = sc >= TH, n = TH - sc;
+    const a = A(), now = new Date(), y = now.getFullYear(), h2 = now.getMonth() >= 6, DAY = 864e5, TH = 80, start = Date.UTC(y, h2 ? 6 : 0, 1), TOT = Math.round((Date.UTC(y, h2 ? 12 : 6, 1) - start) / DAY);
+    const days = Math.max(1, Math.min(TOT, Math.floor((Date.UTC(y, now.getMonth(), now.getDate()) - start) / DAY) + 1)), sc = Math.round(r.total), ok = sc >= TH, n = TH - sc;
     const left = LL(n % 10 === 1 && n % 100 !== 11 ? `Vēl ${n} punkts līdz 80` : `Vēl ${n} punkti līdz 80`, `${n} more ${n === 1 ? 'point' : 'points'} to 80`);
     return `<div class="pcard"><div class="body"><div style="display:flex;gap:12px;align-items:center"><span class="red">${I('gauge', 28)}</span><b style="font-size:16px;line-height:1.3">${LL('Circle K degviela −30 %', 'Circle K fuel −30 %')}</b></div>
       <p style="margin:10px 0 12px;font-size:14px;line-height:1.45">${LL('Ja tavs braucēja rādītājs 6 mēnešus paliek virs 80, nākamos 6 mēnešus saņem −30 % uzpildē.', 'Keep your driver score above 80 for 6 months and get −30 % on refuelling for the next 6 months.')}</p>
@@ -182,14 +182,15 @@
   }
   function drive() {
     const { d, r } = data(), a = A(), c = a.col(r.total), adv = a.adviceText(r, d), tw = a.weekly(d), kp = kpis(r), cs = mycars(d).map((car) => ({ car, x: a.carRes(car) }));
+    const real = cs.filter((y) => !y.car.fictional);
     const last = d.trips.filter((x) => x.counted).sort((x, y) => Date.parse(y.startISO) - Date.parse(x.startISO))[0];
-    const base = cs.length * 300, eur = cs.reduce((s, y) => s + money(y.x.res.total).eur, 0), sav = base - eur, pct = base ? Math.round((sav / base) * 100) : 0;
+    const base = real.length * 300, eur = real.reduce((s, y) => s + money(y.x.res.total).eur, 0), sav = base - eur, pct = base ? Math.round((sav / base) * 100) : 0;
     const b = d.expBuckets || {}, tot = a.P.expBuckets.reduce((s, k) => s + (b[k] || 0), 0) || 1, colr = ['#b3282d', '#2b6cdf', '#232227', '#d98a00'];
     const mixbar = `<div style="display:flex;height:10px;border-radius:99px;overflow:hidden;margin:10px 0 6px">${a.P.expBuckets.map((k, i) => `<i style="width:${((b[k] || 0) / tot) * 100}%;background:${colr[i]}"></i>`).join('')}</div><div class="legend">${a.P.expBuckets.map((k, i) => `<span><i style="background:${colr[i]}"></i>${a.t('b_' + k)}</span>`).join('')}</div>`;
     const trips = d.trips.slice().sort((x, y) => Date.parse(y.startISO) - Date.parse(x.startISO)).slice(0, 8);
     const hero = sav > 0
-      ? `<div class="costrow"><div><small>${P('no_score')}</small><b>${base} €</b></div><span class="red" style="font-size:22px">→</span><div><small>${P('with_score')}</small><b class="big green">${eur} €</b></div></div><div style="margin:10px 0 2px"><span class="pill good">−${sav} € · −${pct}%</span> <small style="color:#7c7c84">${P('per_year')} · ${cs.length} ${P('cars_n')}</small></div>`
-      : `<div class="costrow"><div><small>${P('no_score')}</small><b class="big">${base} €</b></div></div><div style="margin:10px 0 2px"><span class="pill mid">${P('no_disc_yet')}</span> <small style="color:#7c7c84">${cs.length} ${P('cars_n')}</small></div>`;
+      ? `<div class="costrow"><div><small>${P('no_score')}</small><b>${base} €</b></div><span class="red" style="font-size:22px">→</span><div><small>${P('with_score')}</small><b class="big green">${eur} €</b></div></div><div style="margin:10px 0 2px"><span class="pill good">−${sav} € · −${pct}%</span> <small style="color:#7c7c84">${P('per_year')} · ${real.length} ${P('cars_n')}</small></div>`
+      : `<div class="costrow"><div><small>${P('no_score')}</small><b class="big">${base} €</b></div></div><div style="margin:10px 0 2px"><span class="pill mid">${P('no_disc_yet')}</span> <small style="color:#7c7c84">${real.length} ${P('cars_n')}</small></div>`;
     const carRows = cs.map(({ car, x }) => { const m = money(x.res.total), cc = a.col(x.res.total); return `<button class="lrow" data-p="car:${car.id}">${mini(x.res.total, cc)}<span class="t"><b>${car.name}${car.fictional ? exPill() : ''}</b><small>${car.plate} · ${P('drives')} ${x.drivers.map((k) => (k.d.id === d.id ? P('you') : k.d.name.split(' ')[0])).join(', ')}</small></span><span class="v">${m.eur} €<small>${m.discountPct > 0 ? '−' + m.discountPct + '%' : P('no_disc_yet')}</small></span><span style="color:#b9b8c2">${I('chev', 20)}</span></button>`; }).join('');
     return `<h1>${P('d_title')}</h1>
     <div class="pcard"><div class="body"><small style="color:#7c7c84">${P('octa_cost')}</small>${hero}<p style="font-size:12.5px;color:#7c7c84;margin:8px 0 0">${P('per_car_note')}</p></div>

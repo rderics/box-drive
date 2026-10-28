@@ -11,6 +11,9 @@
   const col = (s) => (s >= P.bandLow ? 'good' : s >= P.bandMid ? 'mid' : 'bad');
   const cvar = (c) => `var(--${c})`;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const exWord = () => (lang === 'lv' ? 'PIEMĒRS' : 'EXAMPLE');
+  const ex = (o) => (o && o.fictional ? ` <span class="badge b-mute">${exWord()}</span>` : '');
+  const exTxt = (o) => (o && o.fictional ? ` (${exWord()})` : '');
 
   /* ---------- data prep ---------- */
   const PROFILE_DEMO = { claims3y: 0, expHours: 300, expBuckets: { city: 60, highway: 60, night: 60, badweather: 60 } };
@@ -112,7 +115,7 @@
     const trips = d.trips.slice().sort((a, b) => Date.parse(b.startISO) - Date.parse(a.startISO));
     const rows = trips.map((tr) => `<tr class="click" data-trip="${tr.id}"><td>${new Date(tr.startISO).toISOString().slice(5, 16).replace('T', ' ')}</td><td>${t('m_' + tr.mode)} <small>${fmt(tr.modeConf * 100, 0)}%</small></td><td class="num">${fmt(tr.km)}</td><td>${t(tr.weather)}</td><td class="num">${tr.counted ? tr.brake + tr.accel + tr.corner : '–'}</td><td>${tr.counted ? `<span class="badge b-good">${t('counted')}</span>` : `<span class="badge b-mute">${t('not_counted')}</span>`}</td></tr>`).join('');
     return `
-    <div class="pills" role="tablist">${ds.map((x) => `<button class="chip ${x.id === d.id ? 'on' : ''}" data-driver="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+    <div class="pills" role="tablist">${ds.map((x) => `<button class="chip ${x.id === d.id ? 'on' : ''}" data-driver="${x.id}">${esc(x.name)}${esc(exTxt(x))}</button>`).join('')}</div>
     <div class="card hero"><div class="ring">${ring(r.total, c)}<div class="n"><div><b>${fmt(r.total, 0)}</b><small>± ${fmt(r.sigma, 0)} · ${t('of100')}</small></div></div></div>
       <div style="flex:1;min-width:240px"><h2>${esc(d.name)} <span class="badge b-${c}">${t('band_' + r.band)}</span></h2>
       <p class="mute" style="margin:.2em 0">${d.note ? esc(d.note[lang]) : ''}</p>
@@ -145,7 +148,7 @@
     const cs = (D.cars || []).map((c) => ({ c, x: carRes(c) })).sort((a, b) => b.x.res.total - a.x.res.total);
     const rows = cs.map(({ c, x }) => {
       const r = x.res, bw = ['speeding', 'phone', 'smooth', 'nightfatigue'], beh = bw.reduce((s, k) => s + r.weights[k] * r.scores[k], 0) / bw.reduce((s, k) => s + r.weights[k], 0), pr = E.premiumPreview(r.total), cc = col(r.total);
-      return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
+      return `<tr><td><b>${esc(c.name)}</b>${ex(c)}</td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
         <td><b style="color:${cvar(cc)}">${fmt(r.total, 0)}</b> <small>± ${fmt(r.sigma, 0)}</small></td><td><span class="badge b-${cc}">${t('band_' + r.band)}</span></td>
         <td style="min-width:110px">${bar(beh)}</td><td style="min-width:90px">${bar(r.scores.claims)}</td><td class="num">${pr.eur} € <small>−${pr.discountPct}%</small></td></tr>`;
     }).join('');
@@ -158,7 +161,7 @@
     const ds = allDrivers().filter((d) => d.licYears != null).map((d) => ({ d, r: resOf(d) }));
     const maxY = Math.max(...ds.map((x) => x.d.licYears)), maxH = Math.max(...ds.map((x) => x.d.expHours));
     const byY = ds.slice().sort((a, b) => b.d.licYears - a.d.licYears), byH = ds.slice().sort((a, b) => b.d.expHours - a.d.expHours);
-    const list = (arr, f, max, unit) => arr.map((x, i) => `<div style="margin:10px 0"><div class="row" style="justify-content:space-between"><span>${i + 1}. ${esc(x.d.name)}</span><b>${fmt(f(x), f(x) < 10 ? 1 : 0)} ${unit}</b></div>${bar((f(x) / max) * 100, 'brand')}</div>`).join('');
+    const list = (arr, f, max, unit) => arr.map((x, i) => `<div style="margin:10px 0"><div class="row" style="justify-content:space-between"><span>${i + 1}. ${esc(x.d.name)}${ex(x.d)}</span><b>${fmt(f(x), f(x) < 10 ? 1 : 0)} ${unit}</b></div>${bar((f(x) / max) * 100, 'brand')}</div>`).join('');
     const W = 560, H = 200, pl = 34, pr = 14, pt = 10, pb = 26, xmax = 1500, X = (h) => pl + ((W - pl - pr) * Math.min(h, xmax)) / xmax, Y = (v) => pt + (H - pt - pb) * (1 - v / 100);
     let path = ''; for (let h = 0; h <= xmax; h += 15) path += `${h ? 'L' : 'M'}${X(h)},${Y(100 * (1 - Math.exp(-h / P.expTauHours)))}`;
     const dots = ds.map((x) => { const h = Math.min(x.r.effHours, xmax); return `<circle cx="${X(h)}" cy="${Y(x.r.scores.experience)}" r="5" fill="var(--brand)"/><text x="${X(h) + 7}" y="${Y(x.r.scores.experience) + (x.d.id === 'elina' ? 14 : 4)}" style="fill:var(--ink)">${esc(x.d.name.split(' ')[0])}</text>`; }).join('');
@@ -255,7 +258,7 @@
     const views = [['driver', 'tab_driver'], ['insurer', 'tab_insurer'], ['exp', 'tab_exp'], ['live', 'tab_live'], ['how', 'tab_how']];
     const panel = S.demoOpen ? `<div class="demo-panel card"><div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Demo</h3><button class="chip" data-demo="toggle" aria-label="Close">✕</button></div>
       <p class="note" style="margin:8px 0 0">${dbLine()}</p>
-      <h3 style="margin-top:12px">${L.persona}</h3><div class="pills">${ds.map((x) => `<button class="chip ${x.id === S.driver ? 'on' : ''}" data-persona="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+      <h3 style="margin-top:12px">${L.persona}</h3><div class="pills">${ds.map((x) => `<button class="chip ${x.id === S.driver ? 'on' : ''}" data-persona="${x.id}">${esc(x.name)}${esc(exTxt(x))}</button>`).join('')}</div>
       <div class="pills"><a class="chip" href="login.html" style="text-decoration:none">${lang === 'lv' ? '🔑 Pieteikties / reģistrēties' : '🔑 Log in / sign up'}</a><a class="chip" href="account.html" style="text-decoration:none">${lang === 'lv' ? '👤 Mans konts' : '👤 My account'}</a>
       <a class="chip" href="collect.html" style="text-decoration:none">${lang === 'lv' ? '📡 Braucienu vācējs' : '📡 Trip collector'}</a><a class="chip" href="insurer.html" style="text-decoration:none">${lang === 'lv' ? '🏢 Apdrošinātāja skats' : '🏢 Insurer view'}</a></div>
       <div class="pills"><button class="chip" data-demo="onboard">${L.onboard_btn}</button><button class="chip" data-demo="lang">${lang === 'lv' ? 'EN' : 'LV'}</button></div>
