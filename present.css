@@ -1,10 +1,10 @@
 /* Presentation panels beside the phone (wide screens, in-app view only): live feed from the game on the left, AI coach on the right.
    Same tokens as style.css, so the look stays the app's own. */
-.pv{position:fixed;top:22px;bottom:22px;z-index:3;width:clamp(280px,calc((100vw - 470px) / 2 - 40px),390px);display:flex;flex-direction:column;gap:12px;overflow-y:auto;scrollbar-width:thin}
+.pv{position:fixed;top:22px;bottom:22px;z-index:3;width:clamp(280px,calc((100vw - 470px) / 2 - 40px),390px);display:flex;flex-direction:column;gap:12px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
 .pv[hidden]{display:none!important}
 .pv-left{left:max(24px,env(safe-area-inset-left,0px))}.pv-right{right:max(24px,env(safe-area-inset-right,0px));top:64px}
 .pv-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(20,20,30,.04),0 10px 30px rgba(20,20,30,.06)}
-.pv-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pv-head{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap}.pv-card{min-width:0}
 .pv-title{font-weight:700;font-size:15px}.pv-sub{color:var(--mute);font-size:13px;line-height:1.4}
 .pv-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--line);color:var(--mute);white-space:nowrap}
 .pv-pill.live{background:var(--brand-soft);color:var(--brand)}.pv-pill.done{background:var(--good-soft);color:var(--good)}

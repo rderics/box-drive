@@ -11,13 +11,15 @@
       ai: 'AI treneris', aisub: 'Dzinējs rēķina skaitļus, Jev izlemj, ar ko sākt, Gemini paskaidro.', run: 'Analizēt', running: 'Analizē…', ride: 'Brauciens', engine: 'Dzinējs', you: 'Tu',
       jev: 'Jev · izlemj', jevsub: 'Lēmumu modelis: sarindo ieradumus un pasaka, cik ir pārliecināts.', conf: 'pārliecība', risk: 'riska profils', gem: 'Gemini · paskaidro',
       gemoff: 'Gemini šobrīd nav pieejams (limits) — standarta teksts', low: 'zem 60 % — paliek dzinēja secība (lielākais ieguvums pirmais)', tips: 'Ko darīt', pts: 'punkti', yr: 'gadā', newride: 'Jauns brauciens no Assetto Corsa saglabāts', hint: 'P — paslēpt vai rādīt paneļus', err: 'Neizdevās iegūt analīzi.',
-      f: { speeding: 'Ātrums apstākļiem', smooth: 'Plūdena braukšana', phone: 'Telefons', nightfatigue: 'Nakts un nogurums' } },
+      f: { speeding: 'Ātrums apstākļiem', smooth: 'Plūdena braukšana', phone: 'Telefons', nightfatigue: 'Nakts un nogurums' },
+      ev: { harsh_braking: 'Strauja bremzēšana', harsh_acceleration: 'Strauja paātrināšana', harsh_turning: 'Ass pagrieziens', loss_of_control: 'Kontroles zudums', weaving: 'Lavierēšana', speeding: 'Ātruma pārsniegšana', collision: 'Trieciens' } },
     en: { live: 'Assetto Corsa · live', idle: 'Waiting for a drive', driving: 'Live', done: 'Ride saved', start: 'Start the game and run:', last: 'Last ride', none: 'No rides yet.',
       kmh: 'km/h', limit: 'limit', lat: 'Lateral g', lon: 'Long. g', km: 'km', time: 'time', brake: 'brake', accel: 'accel', corner: 'corner', speed: 'speed', events: 'Events', noev: 'Nothing yet — calm driving.',
       ai: 'AI coach', aisub: 'The engine calculates the numbers, Jev decides where to start, Gemini explains.', run: 'Analyse', running: 'Analysing…', ride: 'Ride', engine: 'Engine', you: 'You',
       jev: 'Jev · decides', jevsub: 'A decision model: ranks the habits and says how sure it is.', conf: 'confidence', risk: 'risk profile', gem: 'Gemini · explains',
       gemoff: 'Gemini is not available right now (limit) — standard text', low: 'below 60% — the engine order stays (biggest gain first)', tips: 'What to do', pts: 'points', yr: 'a year', newride: 'New ride from Assetto Corsa saved', hint: 'P — hide or show the panels', err: 'Could not get the analysis.',
-      f: { speeding: 'Speed for conditions', smooth: 'Smooth driving', phone: 'Phone use', nightfatigue: 'Night and fatigue' } },
+      f: { speeding: 'Speed for conditions', smooth: 'Smooth driving', phone: 'Phone use', nightfatigue: 'Night and fatigue' },
+      ev: { harsh_braking: 'Harsh braking', harsh_acceleration: 'Harsh acceleration', harsh_turning: 'Sharp corner', loss_of_control: 'Loss of control', weaving: 'Weaving', speeding: 'Speeding', collision: 'Impact' } },
   };
   var st = { on: true, row: null, lastTrip: undefined, spark: [], seen: {}, busy: false, aiDone: false, shown: false, ai: null };
   try { st.on = localStorage.getItem('pv_off') !== '1'; } catch (e) {}
@@ -63,7 +65,7 @@
       h += spark();
       h += '<div class="pv-stats"><div><b>' + fmt(r.km, 2) + '</b><span>' + t('km') + '</span></div><div><b>' + mmss(r.t) + '</b><span>' + t('time') + '</span></div><div><b>' + ((c.brake || 0) + (c.accel || 0) + (c.corner || 0)) + '</b><span>' + t('brake') + '/' + t('corner') + '</span></div><div><b>' + (c.speeding || 0) + '</b><span>' + t('speed') + '</span></div></div></div>';
       var ev = r.events || [];
-      h += '<div class="pv-card"><div class="pv-title">' + t('events') + '</div><div class="pv-ev">' + (ev.length ? ev.map(function (e) { var k = e.t + e.kind, isNew = !st.seen[k]; st.seen[k] = 1; return '<div' + (isNew ? '' : ' style="animation:none"') + '><em>' + esc(e.label) + '</em>' + esc(e.value) + '<span>' + mmss(e.t) + '</span></div>'; }).join('') : '<p class="pv-sub">' + t('noev') + '</p>') + '</div>';
+      h += '<div class="pv-card"><div class="pv-title">' + t('events') + '</div><div class="pv-ev">' + (ev.length ? ev.map(function (e) { var k = e.t + e.kind, isNew = !st.seen[k]; st.seen[k] = 1; return '<div' + (isNew ? '' : ' style="animation:none"') + '><em>' + esc((t('ev') || {})[e.kind] || e.label) + '</em>' + esc(e.value) + '<span>' + mmss(e.t) + '</span></div>'; }).join('') : '<p class="pv-sub">' + t('noev') + '</p>') + '</div>';
     }
     h += '</div><p class="pv-hint">' + t('hint') + '</p>';
     left.innerHTML = h;
