@@ -48,7 +48,7 @@ export async function onRequestPost({ request, env }) {
   try {
     let r = await call(model);
     if (r.status === 404) { const alt = await pick(); if (alt && alt !== model) { model = alt; r = await call(alt); } }
-    if (!r.ok) return out({ error: 'gemini_http_' + r.status }, 502);
+    if (!r.ok) { let d = ''; try { const e = await r.json(); d = String((e.error && e.error.message) || '').slice(0, 220); } catch (x) {} return out({ error: 'gemini_http_' + r.status, model, detail: d }, 502); }
     const j = await r.json(), txt = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
     if (!txt) return out({ error: 'gemini_empty' }, 502);
     const g = JSON.parse(txt);
