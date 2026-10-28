@@ -30,15 +30,24 @@ export async function onRequestPost({ request, env }) {
     '(4) never mention fines, never judge the person, never promise a price; (5) keep each title under eight words, each tip and why under thirty words; (6) the summary is two short sentences; ' +
     '(7) the data analysis model already ranked the habits - keep the given order and, if a first habit is named, present it as the best place to start.';
   const facts = { score, band, km, trips, now: { overSafePct: v.over, harshPer100km: v.harsh, phonePerHour: v.phone, nightSharePct: v.night, longDrivesWithoutBreak: v.long }, actions: acts, firstHabit: first };
-  const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+  let model = env.GEMINI_MODEL || 'gemini-2.5-flash';
   const payload = {
     systemInstruction: { parts: [{ text: sys }] },
     contents: [{ role: 'user', parts: [{ text: 'Facts (computed by the engine, do not repeat the numbers):\n' + JSON.stringify(facts) + '\nWrite one action per factor in the same order.' }] }],
     generationConfig: { temperature: 0.3, responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', required: ['summary', 'encouragement', 'actions'], properties: { summary: { type: 'STRING' }, encouragement: { type: 'STRING' }, actions: { type: 'ARRAY', items: { type: 'OBJECT', required: ['factor', 'title', 'tip', 'why'], properties: { factor: { type: 'STRING', enum: FACTORS }, title: { type: 'STRING' }, tip: { type: 'STRING' }, why: { type: 'STRING' } } } } } } },
   };
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 25000);
+  const call = (m) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(payload), signal: ctl.signal });
+  // models get renamed/retired: on 404 ask the API which models this key can use and take the newest "flash" (not lite/image/tts/live) that supports generateContent
+  const pick = async () => {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key }, signal: ctl.signal }); if (!r.ok) return null;
+    const j = await r.json(), ok = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /^models\/gemini-[\d.]+-flash(-\d+)?$/.test(m.name));
+    const ver = (n) => Number((n.match(/gemini-([\d.]+)-flash/) || [0, 0])[1]);
+    ok.sort((a, b) => ver(b.name) - ver(a.name)); return ok.length ? ok[0].name.replace('models/', '') : null;
+  };
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(payload), signal: ctl.signal });
+    let r = await call(model);
+    if (r.status === 404) { const alt = await pick(); if (alt && alt !== model) { model = alt; r = await call(alt); } }
     if (!r.ok) return out({ error: 'gemini_http_' + r.status }, 502);
     const j = await r.json(), txt = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
     if (!txt) return out({ error: 'gemini_empty' }, 502);
