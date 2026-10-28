@@ -167,8 +167,7 @@
     for (const key in W) { total += W[key] * s[key]; wsum += W[key]; }
     total = total / wsum;
     // uncertainty: little measured driving and little experience -> wider band
-    // assumption: an OBD2 adapter gives cleaner data and a certain car identity -> narrower band
-    const sigma = (3 + 14 * Math.exp(-km / 500) + 6 * (1 - s.experience / 100)) * (profile && profile.obd ? 0.8 : 1);
+    const sigma = 3 + 14 * Math.exp(-km / 500) + 6 * (1 - s.experience / 100);
     const band = total >= 80 ? 'low' : total >= 60 ? 'medium' : 'high';
     return { kpi: k, byWeather, scores: s, total: r1(total), sigma: r1(sigma), band, diversity, effHours: r1(effHours), expHours, claims };
   }

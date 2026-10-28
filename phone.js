@@ -31,12 +31,6 @@
       car_score: 'Auto rādītājs', you_driver: 'Tu kā braucējs', you_lead: 'Šis rādītājs seko tev — neatkarīgi no tā, ar kuru auto brauc. Tas ietekmē auto rādītājus tad, kad tu brauc.', my_cars: 'Tavi auto', cars_n: 'auto', drives: 'Brauc:', you: 'Tu',
       per_car_note: 'OCTA cenu aprēķina pa auto, nevis pa braucēju — tāpēc ir divi rādītāji.', car_lead: 'Auto rādītājs ņem vērā visus, kas ar to brauc, un auto negadījumu vēsturi. Tieši šis rādītājs nosaka OCTA cenu.',
       who_drives: 'Kas brauc ar šo auto', share: 'braucienu', own_score: 'braucēja rādītājs', impact: 'ietekme uz auto', only_you: 'Ar šo auto brauc tikai tu.', other_consent: 'Citu braucēju dati ir apkopoti un redzami tikai ar viņu piekrišanu.', car_trips: 'Auto braucieni',
-      obd_t: 'OBD2 adapteris', obd_on: 'Adapteris savienots (Bluetooth)', obd_txt: 'Apdrošinātāja adapteris, bez maksas ar polisi (koncepts). Auto tiek noteikts automātiski, dati precīzāki.',
-      oil: 'Eļļas maiņa', batt: 'Akumulators', dtc: 'Dzinēja kļūdu kodi', dtc_s: 'P0171 — pārāk liesa maisījuma kļūda. Pārbaudi servisā.', auto_id: 'Auto noteikšana', auto_id_v: 'automātiski', ok: 'Kārtībā', soon: 'Drīz', low: 'Zems', none: 'Nav', check: 'Pārbaudīt',
-      sec_t: 'Drošība (pretzādzība)', sec_on: 'Brīdinājumi, ja dzinēju iedarbina bez tava telefona', sec_s: 'Adapteris pamana iedarbināšanu un izņemšanu no ligzdas.', theft_btn: 'Simulēt: iedarbināšana bez telefona',
-      theft_h: 'Dzinējs iedarbināts', theft_q: 'Tavs telefons nav pie auto. Vai tas esi tu vai kāds ar atļauju?', theft_row: 'Dzinējs iedarbināts', phone_near: 'Tavs telefons tuvumā', no: 'Nē', th_me: 'Tas biju es / atļauts', th_police: 'Zvanīt 112', th_ins: 'Informēt apdrošinātāju',
-      th_note: 'Reāllaika brīdinājumam vajag mobilo sakaru moduli adapterī (LTE-M); tikai Bluetooth versija ziņo, tiklīdz telefons atkal ir tuvumā. Atrašanās vietu rāda tikai adapteris ar GPS.',
-      obd_add: 'Pievieno OBD2 adapteri', obd_add_s: 'Precīzāki dati, eļļas maiņas atgādinājumi, kļūdu kodi un pretzādzības brīdinājumi. Bez maksas ar apdrošinātāja polisi (koncepts).', obd_get: 'Pieteikt adapteri',
       tl_start: 'Sākums', tl_end: 'Beigas', map_t: 'Maršruta karte', map_note: 'Shematisks maršruts, rekonstruēts no ātruma un sānu pārslodzes — GPS vēsturi neglabājam. Skaitļi atbilst notikumiem zemāk.',
       r_ok: 'Ātrums kārtībā', r_near: 'Virs limita', r_bad: 'Virs droša ātruma apstākļiem', ev_t: 'Kas notika braucienā', ev_speed: 'Ātruma pārsniegšana', no_events: 'Šajā braucienā nekas īpašs nenotika.', speed_t: 'Ātrums laikā',
       thr: 'slieksnis', lat: 'sānu', phone_hand: 'telefons rokās', limit: 'limits',
@@ -71,12 +65,6 @@
       car_score: 'Car score', you_driver: 'You as a driver', you_lead: 'This score follows you — whichever car you drive. It affects the car scores when you drive them.', my_cars: 'Your cars', cars_n: 'cars', drives: 'Drivers:', you: 'You',
       per_car_note: 'OCTA is priced per car, not per driver — that is why there are two scores.', car_lead: 'The car score takes into account everyone who drives it and the car’s accident history. This is the score that sets the OCTA price.',
       who_drives: 'Who drives this car', share: 'of trips', own_score: 'driver score', impact: 'effect on car', only_you: 'Only you drive this car.', other_consent: 'Other drivers’ data is aggregated and shown only with their consent.', car_trips: 'Car trips',
-      obd_t: 'OBD2 adapter', obd_on: 'Adapter connected (Bluetooth)', obd_txt: 'Insurer-supplied adapter, free with the policy (concept). The car is identified automatically and data is more precise.',
-      oil: 'Oil change', batt: 'Battery', dtc: 'Engine fault codes', dtc_s: 'P0171 — fuel mixture too lean. Have it checked at a garage.', auto_id: 'Car identification', auto_id_v: 'automatic', ok: 'OK', soon: 'Soon', low: 'Low', none: 'None', check: 'Check',
-      sec_t: 'Security (anti-theft)', sec_on: 'Alerts if the engine starts without your phone', sec_s: 'The adapter notices ignition and being unplugged.', theft_btn: 'Simulate: engine start without phone',
-      theft_h: 'Engine started', theft_q: 'Your phone is not near the car. Is this you or someone you allowed?', theft_row: 'Engine started', phone_near: 'Your phone nearby', no: 'No', th_me: 'That was me / allowed', th_police: 'Call 112', th_ins: 'Inform insurer',
-      th_note: 'A real-time alert needs a cellular module (LTE-M) in the adapter; a Bluetooth-only version reports as soon as your phone is near again. Location is shown only by an adapter with GPS.',
-      obd_add: 'Add an OBD2 adapter', obd_add_s: 'More precise data, oil-change reminders, fault codes and anti-theft alerts. Free with the insurer’s policy (concept).', obd_get: 'Request adapter',
       tl_start: 'Start', tl_end: 'End', map_t: 'Route map', map_note: 'Schematic route reconstructed from speed and lateral g — we do not store GPS history. Numbers match the events below.',
       r_ok: 'Speed OK', r_near: 'Over the limit', r_bad: 'Over the safe speed for conditions', ev_t: 'What happened on the trip', ev_speed: 'Speeding', no_events: 'Nothing notable happened on this trip.', speed_t: 'Speed over time',
       thr: 'threshold', lat: 'lateral', phone_hand: 'phone in hand', limit: 'limit',
@@ -109,7 +97,7 @@
   };
   const I = (n, s) => `<svg class="ico" viewBox="0 0 24 24" ${s ? `style="width:${s}px;height:${s}px"` : ''} aria-hidden="true">${PATH[n]}</svg>`;
   const A = () => window.App, lang = () => A().lang(), P = (k) => L[lang()][k] != null ? L[lang()][k] : L.lv[k];
-  const st = { ev: null, theft: true, theftOpen: false, car: null, onboard: null, tab: 'cars', trip: null, kpi: null, crash: false, auto: true, share: true };
+  const st = { ev: null, car: null, onboard: null, tab: 'cars', trip: null, kpi: null, crash: false, auto: true, share: true };
   let root = null;
 
   const dt = (iso) => { const d = new Date(Date.parse(iso) + 3 * 3600e3); const p = (n) => String(n).padStart(2, '0'); return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}. ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
@@ -138,7 +126,7 @@
       <div class="body"><div class="carrow"><div class="thumb">${I('car')}</div><div class="facts">
         <div><b>${car.plate}</b><small>${P('reg')}</small></div><div><b>23.10.2027 <span style="color:#7c7c84">23:59</span></b><small>${P('octa')}</small></div><div><b>${car.claims3y}</b><small>${P('hist')}</small></div></div></div></div>
       <div class="dash"></div>
-      <button class="chipscore" data-p="car:${car.id}">${mini(x.res.total, c)}<span style="flex:1"><b>${P('car_score')}</b><span class="new">${P('new')}</span><br><small style="color:#7c7c84">${m.discountPct > 0 ? P('octa_minus') + ' −' + m.discountPct + '% · ' + P('save') + ' ' + m.savings + ' €' : P('no_disc_yet')}${others.length ? ' · +' + others.join(', ') : ''}${car.obd ? ' · OBD2' : ''}</small></span><span class="red">${I('chev')}</span></button></div>`;
+      <button class="chipscore" data-p="car:${car.id}">${mini(x.res.total, c)}<span style="flex:1"><b>${P('car_score')}</b><span class="new">${P('new')}</span><br><small style="color:#7c7c84">${m.discountPct > 0 ? P('octa_minus') + ' −' + m.discountPct + '% · ' + P('save') + ' ' + m.savings + ' €' : P('no_disc_yet')}${others.length ? ' · +' + others.join(', ') : ''}</small></span><span class="red">${I('chev')}</span></button></div>`;
   }
   function cars() {
     const { d } = data();
@@ -206,21 +194,10 @@
     <p class="lead" style="font-size:14.5px">${P('car_lead')}</p>
     <div class="pcard"><div class="body"><small style="color:#7c7c84">${P('octa_cost')}</small>${priceHero(r.total, true)}</div></div>
     ${scoreCard(r, c, null)}
-    ${obdBlock(car)}
     <h2>${P('who_drives')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${x.drivers.length > 1 ? drows : `<div class="lrow" style="cursor:default"><span class="t"><b>${P('only_you')}</b></span></div>`}</div></div><p class="disc" style="text-align:left;margin:6px 0 0">${P('other_consent')}</p>
     <h2>${P('why_t')}</h2><div class="advbox"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>${planHtml(plan(r))}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp.slice(0, 5))}</div></div>
     <h2>${P('car_trips')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${tripRows(trips, d)}</div></div>`;
-  }
-  function obdBlock(car) {
-    const a = A();
-    if (!car.obd) return `<h2>${P('obd_t')}</h2><div class="pcard"><div class="body"><div style="display:flex;gap:12px"><span class="red">${I('lock', 26)}</span><div><b>${P('obd_add')}</b><br><small style="color:#7c7c84;line-height:1.45">${P('obd_add_s')}</small></div></div><div style="margin-top:12px"><button class="pbtn sm">${P('obd_get')}</button></div></div></div>`;
-    const h = car.health, oilPct = Math.min(100, h.oilKm / 150), oilC = h.oilKm < 1000 ? 'mid' : 'good', batC = h.batt < 12.3 ? 'mid' : 'good', dtc = h.dtc.length;
-    const row = (ic, t, v, pill, c, extra) => `<div class="lrow" style="cursor:default"><span class="red">${I(ic)}</span><span class="t"><b style="font-weight:600">${t}</b>${extra || ''}</span><span class="v">${v}${pill ? `<small><span class="pill ${c}" style="font-size:11px">${pill}</span></small>` : ''}</span></div>`;
-    return `<h2>${P('obd_t')}</h2><div class="pcard"><div class="body bgrow"><span class="live"></span><div style="font-size:14px;line-height:1.4"><b>${P('obd_on')}</b><br><span style="color:#7c7c84">${P('obd_txt')}</span></div></div><div class="dash"></div>
-      <div class="body" style="padding:6px 14px">${row('clock', P('oil'), '~' + a.fmt(h.oilKm, 0).replace('.', ' ') + ' km', h.oilKm < 1000 ? P('soon') : P('ok'), oilC, mbar(oilPct, oilC))}${row('zap', P('batt'), a.fmt(h.batt).replace('.', ',') + ' V', h.batt < 12.3 ? P('low') : P('ok'), batC)}${row('warn', P('dtc'), dtc ? h.dtc.join(', ') : P('none'), dtc ? P('check') : P('ok'), dtc ? 'mid' : 'good', dtc ? `<small>${P('dtc_s')}</small>` : '')}${row('car', P('auto_id'), P('auto_id_v'), '', '')}</div></div>
-    <h2>${P('sec_t')}</h2><div class="pcard"><div class="body"><div style="display:flex;gap:12px;align-items:center"><span class="red">${I('shield', 26)}</span><div style="flex:1"><b>${P('sec_on')}</b><br><small style="color:#7c7c84">${P('sec_s')}</small></div><button class="sw ${st.theft ? 'on' : ''}" data-p="sw:theft"></button></div>
-      <div style="margin-top:12px"><button class="pbtn sm out" data-p="theft">${P('theft_btn')}</button></div></div></div>`;
   }
   const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   function onboarding() {
@@ -317,11 +294,6 @@
         <p style="margin:14px 0 6px;line-height:1.45">${a.t('c_' + st.kpi)}</p><table><tr><td>${P('weight')}</td><td>${w}%</td></tr><tr><td>${a.t('k_' + st.kpi)}</td><td>${a.fmt(k.s, 0)} / 100</td></tr></table>
         <div style="margin-top:14px"><button class="pbtn" data-p="close">OK</button></div></div></div>`;
     }
-    if (st.theftOpen) {
-      return `<div class="sheetbg"><div class="sheet" data-p="stop"><div class="grab"></div><h3 class="red">${I('warn', 22)} ${P('theft_h')}</h3><p style="margin:4px 0 8px;line-height:1.45">${P('theft_q')}</p>
-        <table><tr><td>${P('c_when')}</td><td>03:12</td></tr><tr><td>${P('obd_t')}</td><td>${P('theft_row')}</td></tr><tr><td>${P('phone_near')}</td><td>${P('no')}</td></tr></table>
-        <p style="color:#7c7c84;font-size:13px;line-height:1.4">${P('th_note')}</p><button class="pbtn" data-p="close">${P('th_me')}</button><div style="height:10px"></div><button class="pbtn out" data-p="close">${P('th_police')}</button><div style="height:10px"></div><button class="pbtn out" data-p="close">${P('th_ins')}</button></div></div>`;
-    }
     if (st.crash) {
       const now = new Date(), p = (n) => String(n).padStart(2, '0');
       return `<div class="sheetbg"><div class="sheet" data-p="stop"><div class="grab"></div><h3 class="red">${I('warn', 22)} ${P('crash_h')}</h3><p style="margin:4px 0 8px;line-height:1.45">${P('crash_q')}</p>
@@ -353,9 +325,8 @@
     else if (act === 'car') { st.car = arg; st.trip = null; }
     else if (act === 'backcar') { st.car = null; }
     else if (act === 'ob-next') { if (st.onboard >= 2) { st.onboard = null; st.tab = 'cars'; } else st.onboard++; }
-    else if (act === 'close') { st.kpi = null; st.crash = false; st.theftOpen = false; st._keep = true; }
+    else if (act === 'close') { st.kpi = null; st.crash = false; st._keep = true; }
     else if (act === 'crash') st.crash = true;
-    else if (act === 'theft') st.theftOpen = true;
     else if (act === 'crash-ok') { st.crash = false; }
     else if (act === 'sw') { st[arg] = !st[arg]; st._keep = true; }
     else if (act === 'lang') { a.setLang(a.lang() === 'lv' ? 'en' : 'lv'); return; }

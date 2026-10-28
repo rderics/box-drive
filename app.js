@@ -20,7 +20,7 @@
     const own = new Map(), trips = [], by = {};
     for (const d of D.drivers) for (const t of d.trips) if (t.carId === car.id) { trips.push(t); own.set(t, d.id); if (t.counted) { by[d.id] = by[d.id] || { d, km: 0 }; by[d.id].km += t.km; } }
     const tot = Object.values(by).reduce((s, x) => s + x.km, 0) || 1, wm = (f) => Object.values(by).reduce((s, x) => s + f(x.d) * x.km / tot, 0);
-    const profile = { obd: !!car.obd, claims3y: car.claims3y, expHours: wm((d) => d.expHours), expBuckets: Object.fromEntries(P.expBuckets.map((k) => [k, wm((d) => (d.expBuckets || {})[k] || 0)])) };
+    const profile = { claims3y: car.claims3y, expHours: wm((d) => d.expHours), expBuckets: Object.fromEntries(P.expBuckets.map((k) => [k, wm((d) => (d.expBuckets || {})[k] || 0)])) };
     const res = E.scoreDriver(trips, profile);
     const drivers = Object.values(by).map((x) => { const rest = trips.filter((t) => own.get(t) !== x.d.id); const w = E.scoreDriver(rest, profile); return { d: x.d, km: x.km, share: x.km / tot, impact: res.total - w.total, res: resOf(x.d) }; }).sort((a, b) => b.km - a.km);
     return { car, res, trips, drivers, profile };
@@ -133,7 +133,7 @@
     const cs = (D.cars || []).map((c) => ({ c, x: carRes(c) })).sort((a, b) => b.x.res.total - a.x.res.total);
     const rows = cs.map(({ c, x }) => {
       const r = x.res, beh = (['speeding', 'phone', 'smooth', 'nightfatigue'].reduce((s, k) => s + P.weights[k] * r.scores[k], 0)) / (25 + 20 + 20 + 10), pr = E.premiumPreview(r.total), cc = col(r.total);
-      return `<tr><td><b>${esc(c.name)}</b>${c.obd ? ' <span class="badge b-info">OBD2</span>' : ''}</td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
+      return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.plate)}</td><td class="num">${x.drivers.length}</td><td class="num">${fmt(r.kpi.km, 0)}</td>
         <td><b style="color:${cvar(cc)}">${fmt(r.total, 0)}</b> <small>± ${fmt(r.sigma, 0)}</small></td><td><span class="badge b-${cc}">${t('band_' + r.band)}</span></td>
         <td style="min-width:110px">${bar(beh)}</td><td style="min-width:90px">${bar(r.scores.claims)}</td><td class="num">${pr.eur} € <small>−${pr.discountPct}%</small></td></tr>`;
     }).join('');
@@ -193,7 +193,6 @@
     <div class="grid g3" style="margin-top:14px"><div class="card flat"><b>${t('reqs')}</b><ul><li>${t('req1')}</li><li>${t('req2')}</li><li>${t('req3')}</li></ul></div>
       <div class="card flat"><b>${t('roadmap')}</b><ul>${t('rm').map((x) => `<li>${x}</li>`).join('')}</ul></div>
       <div class="card flat"><b>${t('assumptions')}</b><ul>${t('as').map((x) => `<li>${x}</li>`).join('')}</ul></div></div>
-    <div class="card" style="margin-top:14px"><h3>${t('obd_how_t')}</h3><ul>${t('obd_how').map((x) => `<li>${x}</li>`).join('')}</ul></div>
     <div class="card" style="margin-top:14px"><h3>${t('ts_t')}</h3><ul><li>${t('ts_1')}</li><li>${t('ts_2')}</li><li>${t('ts_3')}</li></ul></div>
     <h3 style="margin-top:18px">${t('addon')}</h3><div class="phone"><div class="screen"><b>LTAB OCTA</b>
       <div class="card flat"><small>${t('score')}</small><div style="font-size:2rem;font-weight:700;color:var(--good)">86</div></div>

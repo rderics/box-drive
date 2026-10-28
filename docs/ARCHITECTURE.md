@@ -3,7 +3,7 @@ status: open
 
 # OCTA Tech Challenge — backend and the real app (Rinalds asked 28.10 ~16:30)
 
-Builds on [[OCTA Tech Challenge — LTAB OCTA lietotnes dizains un pilnās prezentācijas (28.10.2026)]] (two scores, OBD2, per-car OCTA). Everything here is a design proposal unless marked built.
+Builds on [[OCTA Tech Challenge — LTAB OCTA lietotnes dizains un pilnās prezentācijas (28.10.2026)]] (two scores, per-car OCTA). Everything here is a design proposal unless marked built.
 
 ## 1. Principle: process on the phone, upload summaries
 Meets the brief ("minimal setup", "low resources", GDPR/EU): the phone detects trips, computes events and a trip summary; the server gets **summaries + events**, not a GPS history. Same scoring code on phone and server (`engine.js` is plain JS → TypeScript package, versioned parameters).
@@ -15,7 +15,7 @@ Meets the brief ("minimal setup", "low resources", GDPR/EU): the phone detects t
 | Speed, route | GPS 1 Hz (Core Location, "Always" permission) | Fused location | needed for speed limit + weather join |
 | Hard brake/accel/corner | accelerometer + gyro 10–50 Hz, gravity removed, aligned to the car axis using GPS bearing | same | thresholds per road condition (assumption, tunable) |
 | Phone use while driving | weak: pick-up/handling pattern, calls (CallKit); cannot see other apps | screen-on/unlock events (UsageStats permission) | accuracy differs by OS — be honest in the pitch |
-| Which car | car Bluetooth / CarPlay / Android Auto pairing, **OBD2 BLE adapter**, or one-time "which car?" | same | per-car score needs this |
+| Which car | car Bluetooth / CarPlay / Android Auto pairing, or one-time "which car?" | same | per-car score needs this |
 | Driver vs passenger | confidence from pairing + routine + entry signature; one-tap "that was me" | same | ≈ 87–93 % best case; low confidence → not scored |
 **Build vs buy:** background sensing is months of native work; a telematics SDK (DriveQuant, Cambridge Mobile Telematics, Sentiance…) would give trip detection + events out of the box. Realistic product path = SDK or native modules; tonight = a web collector (below).
 

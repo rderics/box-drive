@@ -110,7 +110,7 @@ const DRIVERS = [
 
 const out = { synthetic: true, generated: new Date().toISOString(), drivers: [], ac: {},
   cars: [
-    { id: 'golf', name: 'VW GOLF', plate: 'EB 4821', claims3y: 0, obd: true, health: { oilKm: 6400, batt: 12.6, dtc: [] } }, { id: 'fiesta', name: 'FORD FIESTA', plate: 'FD 3307', claims3y: 1, obd: true, health: { oilKm: 640, batt: 12.1, dtc: ['P0171'] } },
+    { id: 'golf', name: 'VW GOLF', plate: 'EB 4821', claims3y: 0 }, { id: 'fiesta', name: 'FORD FIESTA', plate: 'FD 3307', claims3y: 1 },
     { id: 'corolla', name: 'TOYOTA COROLLA', plate: 'MK 2093', claims3y: 0 }, { id: 'bmw', name: 'BMW 320D', plate: 'DR 7710', claims3y: 0 }, { id: 'volvo', name: 'VOLVO V90', plate: 'AS 1450', claims3y: 1 } ] };
 for (const dr of DRIVERS) {
   const r = mulberry32(dr.seed); const trips = []; let n = 0; const rawKeep = {};
