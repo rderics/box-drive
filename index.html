@@ -8,38 +8,22 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#b3282d">
-<link rel="stylesheet" href="style.css?v=20261028q">
-<link rel="stylesheet" href="phone.css?v=20261028q">
+<link rel="stylesheet" href="style.css?v=20261028n">
+<link rel="stylesheet" href="phone.css?v=20261028n">
 </head>
 <body>
-<a id="acct2" href="login.html">Pieteikties</a>
 <header class="top">
   <div class="brand"><span class="logo" aria-hidden="true">◔</span><div><b>Driver Score</b><small data-i="tagline"></small></div></div>
   <nav id="tabs" class="tabs" role="tablist"></nav>
-  <div class="tools"><a id="signup" class="chip" href="login.html#signup" style="text-decoration:none"></a><a id="acct" class="chip on" href="login.html" style="text-decoration:none"></a><button id="lang" class="chip" aria-label="Language">LV</button></div>
+  <div class="tools"><button id="lang" class="chip" aria-label="Language">LV</button></div>
 </header>
 <main id="main"></main>
 <footer class="foot"><span data-i="footer"></span></footer>
-<script src="i18n.js?v=20261028q"></script>
-<script src="engine.js?v=20261028q"></script>
-<script src="data.js?v=20261028q"></script>
-<script src="db.js?v=20261028q"></script>
-<script src="phone.js?v=20261028q"></script>
-<script src="app.js?v=20261028q"></script>
-<script src="auth.js?v=20261028q"></script>
-<script>
-/* login in the front end: top-right "Log in / Sign up" or "<name>" (-> my account). Follows the page language. */
-(function () {
-  function paint() {
-    var lv = document.documentElement.lang !== 'en', u = window.Auth && Auth.user(), a = document.getElementById('acct'), s = document.getElementById('signup');
-    var f = document.getElementById('acct2'); if (f) { f.textContent = u ? '\ud83d\udc64 ' + (u.name || u.email || '') : '\ud83d\udd11 ' + (lv ? 'Pieteikties / reģistrēties' : 'Log in / sign up'); f.href = u ? 'account.html' : 'login.html'; }
-    if (!a || !s) return;
-    if (u) { a.textContent = '\ud83d\udc64 ' + (u.name || u.email || (lv ? 'Mans konts' : 'My account')); a.href = 'account.html'; a.title = lv ? 'Mans konts' : 'My account'; s.hidden = true; }
-    else { a.textContent = lv ? 'Pieteikties' : 'Log in'; a.href = 'login.html'; s.textContent = lv ? 'Reģistrēties' : 'Sign up'; s.hidden = false; }
-  }
-  paint();
-  new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-})();
-</script>
+<script src="i18n.js?v=20261028n"></script>
+<script src="engine.js?v=20261028n"></script>
+<script src="data.js?v=20261028n"></script>
+<script src="db.js?v=20261028n"></script>
+<script src="phone.js?v=20261028n"></script>
+<script src="app.js?v=20261028n"></script>
 </body>
 </html>
