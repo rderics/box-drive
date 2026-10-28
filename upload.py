@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -140,14 +141,72 @@ def build_payload(points: Sequence, events: Sequence, dist_m: float, duration_s:
     }
 
 
-def upload(payload: dict, email: Optional[str] = None, password: Optional[str] = None) -> bool:
+class LiveStream:
+    """Sends what the game is doing RIGHT NOW (speed, limit, g-forces, latest events) to the user's own live_state row about twice a second,
+    so the website can show the drive live during a presentation. Runs in a background thread with only the latest state queued: it never
+    blocks the game loop, and a network problem only switches the live view off. No location is sent."""
+
+    def __init__(self, email: Optional[str] = None, password: Optional[str] = None, plate: Optional[str] = None, period: float = 0.5):
+        email = email or os.environ.get("OCTA_EMAIL") or DEMO_EMAIL
+        password = password or os.environ.get("OCTA_PASSWORD") or DEMO_PASSWORD
+        self.ok, self.plate, self.period = False, plate, period
+        self.latest: Optional[dict] = None
+        self.events: List[dict] = []
+        self.counts = {"brake": 0, "accel": 0, "corner": 0, "speeding": 0, "other": 0}
+        self._stop = threading.Event()
+        try:
+            self.token, self.uid = _login(email, password)
+            self.ok = True
+        except RuntimeError as exc:
+            print("Live view off:", exc)
+            return
+        self._post({"status": "driving", "t": 0, "km": 0, "v": 0, "counts": self.counts, "events": [], "trip_id": None})
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        print(f"Live view on: the website shows this drive as {email}.")
+
+    def update(self, t: float, km: float, v: float, lim: Optional[float], g_lat: Optional[float], g_lon: Optional[float]) -> None:
+        self.latest = {"t": round(t, 1), "km": round(km, 3), "v": round(v, 1), "lim": lim,
+                       "g_lat": None if g_lat is None else round(g_lat, 2), "g_lon": None if g_lon is None else round(g_lon, 2)}
+
+    def event(self, e) -> None:
+        typ = EVENT_MAP.get(e.kind) or ("speeding" if e.kind == "speeding" else "other")
+        self.counts[typ if typ in self.counts else "other"] += 1
+        value = f"{e.peak:.2f} g" if e.unit == "g" else f"+{e.peak:.0f} km/h"
+        self.events = ([{"t": round(e.t_start, 1), "kind": e.kind, "label": e.label, "value": value, "kmh": round(e.speed_kmh)}] + self.events)[:8]
+
+    def _post(self, row: dict) -> None:
+        body = {**row, "user_id": self.uid, "car_plate": self.plate, "updated_at": datetime.now(timezone.utc).isoformat()}
+        _http("POST", f"{URL}/rest/v1/live_state?on_conflict=user_id", body,
+              {"Authorization": "Bearer " + self.token, "Prefer": "resolution=merge-duplicates,return=minimal"})
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.period):
+            if self.latest is not None:
+                try:
+                    self._post({**self.latest, "status": "driving", "counts": self.counts, "events": self.events})
+                except Exception:
+                    pass
+
+    def finish(self, trip_id: Optional[str] = None) -> None:
+        if not self.ok:
+            return
+        self._stop.set()
+        self._thread.join(timeout=2)
+        try:
+            self._post({**(self.latest or {}), "status": "done" if trip_id else "idle", "counts": self.counts, "events": self.events, "trip_id": trip_id})
+        except Exception:
+            pass
+
+
+def upload(payload: dict, email: Optional[str] = None, password: Optional[str] = None) -> Optional[str]:
     email = email or os.environ.get("OCTA_EMAIL") or DEMO_EMAIL
     password = password or os.environ.get("OCTA_PASSWORD") or DEMO_PASSWORD
     try:
         token, uid = _login(email, password)
     except RuntimeError as exc:
         print("Upload failed:", exc)
-        return False
+        return None
     H = {"Authorization": "Bearer " + token}
 
     # attach the ride to the user's existing car with the same plate (the Mercedes created by tools/create-ali.js), else the first car, else let the server create it
@@ -163,6 +222,6 @@ def upload(payload: dict, email: Optional[str] = None, password: Optional[str] =
     if s == 200 and r.get("ok"):
         print(f"\nUploaded as {email}: trip {r['trip_id']} · car {r.get('car_id')} · {r['events']} events · source {r.get('source')}")
         print("See it on the site: log in at https://rderics.id.lv/octa/ (the rating follows the last rides)")
-        return True
+        return r["trip_id"]
     print(f"Upload failed ({s}): {r}", file=sys.stderr)
-    return False
+    return None

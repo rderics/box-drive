@@ -241,7 +241,7 @@
     for (let i = 0; i <= last + 1; i++) {
       const over = i <= last && tr.v[i] > tr.lim[i] * safe + a.P.speedMarginKmh;
       if (over) { if (s0 < 0) { s0 = i; vm = 0; } vm = Math.max(vm, tr.v[i]); }
-      else if (s0 >= 0) { const dur = (i - s0) * step; if (dur >= 8) out.push({ sec: s0 * step, j: s0, type: 'speed', sub: `${Math.round(dur)} s · ${P('up_to')} ${vm} km/h (${P('limit')} ${tr.lim[s0]}${safe < 1 ? ', ' + a.t(t.weather).toLowerCase() : ''})` }); s0 = -1; }
+      else if (s0 >= 0) { const dur = (i - s0) * step; if (dur >= 8) out.push({ sec: s0 * step, j: s0, type: 'speed', sub: `${Math.round(dur)} s · ${P('up_to')} ${vm} km/h (${P('limit')} ${tr.lim[s0]}${safe < 1 ? ', ' + a.t(t.weather).toLowerCase() + ' ' + (a.lang() === 'lv' ? 'drošs' : 'safe') + ' ' + Math.round(tr.lim[s0] * safe) : ''})` }); s0 = -1; }
     }
     return out.sort((x, y) => x.sec - y.sec);
   }

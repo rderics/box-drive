@@ -136,8 +136,9 @@ def print_summary(mon: LiveMonitor, cfg: Config) -> dict:
 
 
 def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: float = 0.0,
-                report: Optional[str] = None, title: str = "", record: Optional[list] = None):
-    """Returns the finished LiveMonitor (None on a source error). `record` collects every point (for --upload)."""
+                report: Optional[str] = None, title: str = "", record: Optional[list] = None, live=None):
+    """Returns the finished LiveMonitor (None on a source error). `record` collects every point (for --upload);
+    `live` (upload.LiveStream) shows the drive on the website while it happens."""
     mon = LiveMonitor(cfg)
     tty = sys.stdout.isatty()
     print(f"=== {title} ===  (Ctrl+C — stop and show summary)")
@@ -156,6 +157,10 @@ def run_session(source: Iterable[TelemetryPoint], cfg: Config, speed_factor: flo
                 record.append(replace(p, t=p.t - first_t))
             fresh = mon.feed(p)
             last_p = p
+            if live is not None:
+                live.update(p.t - first_t, mon.dist_m / 1000.0, p.speed_kmh, p.speed_limit_kmh, p.g_lat, p.g_lon)
+                for e in fresh:
+                    live.event(e)
             for e in fresh:
                 if tty:
                     sys.stdout.write("\r" + " " * 78 + "\r")
@@ -229,6 +234,7 @@ def main(argv=None) -> None:
     a = sub.add_parser("ac", help="Assetto Corsa in real time (Windows)")
     common(a)
     a.add_argument("--hz", type=float, default=30.0)
+    a.add_argument("--save-csv", help="also record the drive to CSV (a backup you can replay later with: csv <file> --speed 1 --upload)")
 
     sub.add_parser("ac-check", help="raw values from Assetto Corsa")
 
@@ -267,17 +273,32 @@ def main(argv=None) -> None:
     if args.upload and args.cmd == "demo":
         print("--upload is for real Assetto Corsa trips only (ac, or a csv recorded from the game); demo data is synthetic.")
         return
-    rec: Optional[list] = [] if args.upload else None
+    save_to = getattr(args, "save_csv", None) if args.cmd == "ac" else None
+    rec: Optional[list] = [] if (args.upload or save_to) else None
     started = datetime.now(timezone.utc)
-    mon = run_session(source, cfg, speed_factor=speed, report=args.report, title=title, record=rec)
+    live = None
+    if args.upload:
+        import upload as up
+        live = up.LiveStream(args.email, args.password, plate=args.plate)    # the website shows the drive while it happens
+        if not live.ok:
+            live = None
+    mon = run_session(source, cfg, speed_factor=speed, report=args.report, title=title, record=rec, live=live)
+    if save_to and rec:
+        save_csv(rec, save_to)
+        print(f"Drive recorded: {save_to}  (replay: python live.py csv {save_to} --speed 1 --upload)")
     if args.upload and mon is not None:
         if mon.last_t < 20 or mon.dist_m < 100:
             print("\nTrip too short to upload (need at least 20 s and 100 m).")
+            if live:
+                live.finish(None)
             return
-        import upload as up
         payload = up.build_payload(rec, mon.events, mon.dist_m, mon.last_t, car=args.car, plate=args.plate,
                                    limit_kmh=args.limit or 50.0, weather=args.weather, started=started)
-        up.upload(payload, email=args.email, password=args.password)
+        trip_id = up.upload(payload, email=args.email, password=args.password)
+        if live:
+            live.finish(trip_id)
+    elif live:
+        live.finish(None)
 
 
 if __name__ == "__main__":

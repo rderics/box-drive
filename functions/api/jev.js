@@ -39,10 +39,11 @@ export async function onRequestPost({ request, env }) {
   };
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
   try {
+    const t0 = Date.now();
     const r = await fetch('https://api.typesafe.ai/v1/systemone', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body), signal: ctl.signal });
     if (!r.ok) return out({ error: 'jev_http_' + r.status }, 502);
     const j = await r.json(), a = (j && j.answers) || {};
     if (!a.start_here || a.start_here.type !== 'choice' || !(a.start_here.choice in criteria)) return out({ error: 'jev_bad_answer' }, 502);
-    return out({ start_here: a.start_here.choice, start_conf: Number(a.start_here.confidence || 0), risk_score: a.risk_level ? a.risk_level.score : null, risk_conf: a.risk_level ? a.risk_level.confidence : null, model: j.model || body.model });
+    return out({ ms: Date.now() - t0, probs: a.start_here.probabilities || null, start_here: a.start_here.choice, start_conf: Number(a.start_here.confidence || 0), risk_score: a.risk_level ? a.risk_level.score : null, risk_conf: a.risk_level ? a.risk_level.confidence : null, model: j.model || body.model });
   } catch (e) { return out({ error: 'jev_unreachable' }, 502); } finally { clearTimeout(to); }
 }
