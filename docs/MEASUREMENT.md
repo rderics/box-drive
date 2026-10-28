@@ -10,7 +10,10 @@ Status 28.10: **built** = in the repo and tested; **design** = proposal, not bui
 ## No sign-in screen — built
 A device-bound **anonymous account** is created silently (`device-register`), credentials stay on the device, consent (`collect`) is recorded once. Cleaner later: enable Supabase *anonymous sign-ins* and delete `device-register`.
 
-## Background tracking — design (needs a native app)
+## Decision 28.10: website only, no app
+The product for the hackathon is the **website** (`collect.html` collector, demo, `insurer.html`). Consequences, stated honestly: the collector works **in the foreground** (screen on; request a Screen Wake Lock), and a browser has **no** Bluetooth/CarPlay car pairing, so car and driver are chosen on the page (car dropdown + "I am the driver"; two-phone elimination still works server-side). Passive background tracking and Bluetooth-based driver detection below are therefore a **future-roadmap** note, not part of the deliverable.
+
+## Background tracking — future roadmap (would need a native app)
 A web page **cannot** record in the background (screen must stay on). Two routes: (1) a **native app** (Swift / Kotlin, or React Native / Flutter with a background-location module), (2) a **telematics SDK** (e.g. DriveQuant, Cambridge Mobile Telematics, Sentiance) which already does trip detection and events. The web collector (`collect.html`) is the *experimental stand-in*: GPS speed + motion sensors → events computed on the phone → summary to `ingest-trip`.
 
 ## Is the person the driver? (also with Waze / Google Maps) — design
