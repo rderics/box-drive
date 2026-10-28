@@ -62,3 +62,10 @@ Verified 28.10: anon → 401; user without consent → 403; with consent → 200
 4. `recommend` (Supabase Edge Function) glues them together, caches 24 h, falls back to template text on any failure. **All keys live in the Cloudflare Pages project** (any variable containing JEV/TYPESAFE or GEMINI); nothing is stored in Supabase or the repo.
 Status 28.10 night: Jev works; Gemini returns HTTP 402 "prepayment credits are depleted" until the Google AI Studio balance is topped up (template text is shown meanwhile).
 **Cars:** the account page lets a logged-in user add cars by hand (plate, make, model, year, fuel, cc, kW, odometer, VIN, registration certificate no., OCTA expiry, claims in 3 years) — stored in `cars` as `self-declared` (no CSDD access); `collect.html` has a "my car" selector.
+
+## Hackathon flow (28.10 night, Ali's spec)
+**ASSETTO CORSA → `live.py` analyses → `upload.py` sends ride + events to the database → the website (login first) reads the user's rows and calculates the rating from the LAST rides.**
+- Website: first page = login/sign-up (`login.html`); then the app shows only the signed-in user's own data from Supabase (`DB.loadMine`). Empty account → illustrative **sample** rides are inserted (`samples.js`, `source='sample'`, labelled "SAMPLE data" in the app). The site records nothing; it only reads and calculates (rating = last 20 counted rides, `P.lastRides`).
+- No AI-agent processing for now (`AI_ON=false` in `app.js`, advice call off in `account.html`); the `recommend` / Jev / Gemini pipeline stays deployed but unused.
+- Demo user: **Ali Aslanov** (`tools/create-ali.js`; email `ali.aslanov@boxdrive.demo`, demo password in `upload.py`/the script — made-up details, throw-away account), car **Mercedes-Benz 190E Evo2** (plate AL1990, 2.5 16V, 173 kW, 1991, illustrative odometer/VIN/registration), 41 sample rides.
+- `python live.py ac --zones "0-1500:60,1500-:90" --upload` uploads as Ali (override with `--email/--password` or env `OCTA_EMAIL/OCTA_PASSWORD`); the ride is attached to the car with plate AL1990.

@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const E = Engine, P = E.P, D = DEMO;
+  const AI_ON = false;   // hackathon: no AI-agent processing for now (accounting + ready UI only); flip to true to bring the advice card back
   let lang = 'lv'; try { lang = localStorage.getItem('lang') || lang; } catch (e) {}
   const t = (k) => (I18N[lang][k] != null ? I18N[lang][k] : I18N.en[k] != null ? I18N.en[k] : k);
   const S = { demoOpen: false, tab: 'app', driver: 'elina', trip: null, session: 'calm', weather: 'dry', limit: 50, imports: [], liveErr: '' };
@@ -109,7 +110,7 @@
       <p class="mute" style="margin:.2em 0">${d.note ? esc(d.note[lang]) : ''}</p>
       <div class="row" style="gap:8px;margin-top:8px"><span class="badge b-info">${t('exp_level')}: ${fmt(d.expHours, 0)} ${t('hours')} (${t('est')})</span><span class="badge b-mute">${t('conf')}: ${t(conf)}</span><span class="badge b-mute">${fmt(k.km, 0)} ${t('measured_km')}</span><span class="badge b-mute">${k.trips} ${t('trips_scored')} · ${k.excluded} ${t('trips_excl')}</span></div></div></div>
     <div class="card advice a-${c}" style="margin-top:14px"><b>${t('advice_t')}</b><p>${esc(adv.txt)}</p>${adv.gain ? `<small class="note">${t('gain')} +${fmt(adv.gain, 0)} ${t('pts')}</small>` : ''}</div>
-    <div class="card" style="margin-top:14px" id="aiadv" data-subj="${d.id}"><b>${t('ai_t')}</b><p class="note">${t('ai_load')}</p></div>
+    ${AI_ON ? `<div class="card" style="margin-top:14px" id="aiadv" data-subj="${d.id}"><b>${t('ai_t')}</b><p class="note">${t('ai_load')}</p></div>` : ''}
     <h2 style="margin-top:20px">KPI</h2><div class="grid g3">${cards}</div>
     <div class="grid g2" style="margin-top:14px"><div class="card"><h3>${t('trend')}</h3>${trendSvg(tw)}</div>
       <div class="card"><h3>${t('by_cond')}</h3><table><thead><tr><th></th><th class="num">km</th><th class="num">${t('harsh_per100')}</th><th class="num">${t('over_safe')}</th></tr></thead><tbody>${bw}</tbody></table></div></div>
@@ -231,6 +232,7 @@
   function dbLine() {
     const lv = lang === 'lv', i = S.dbInfo;
     if (!i) return `◌ ${lv ? 'Datu avots: ielādē no datubāzes…' : 'Data source: loading from the database…'}`;
+    if (i.source === 'supabase' && i.sample) return `◐ ${lv ? 'Tavi dati no datubāzes (Supabase) — PARAUGA dati, kamēr nav īstu braucienu' : 'Your data from the database (Supabase) — SAMPLE data until there are real rides'} · ${i.trips} ${lv ? 'braucieni' : 'trips'}`;
     if (i.source === 'supabase') return `● ${lv ? 'Datu avots' : 'Data source'}: Supabase (EU) · ${i.trips} ${lv ? 'braucieni' : 'trips'} · ${i.events} ${lv ? 'notikumi' : 'events'} · ${i.ms} ms`;
     return `○ ${lv ? 'Šie ir SINTĒTISKI demo scenāriji (iebūvēti lapā). Īstie dati glabājas datubāzē un ir redzami tikai kontā.' : 'These are SYNTHETIC demo scenarios (built into the page). Real data lives in the database and is visible only in your account.'}`;
   }
@@ -317,6 +319,15 @@
   window.App = { E, D, carsOf, carRes, allDrivers, resOf, weekly, adviceText, ring, trendSvg, speedChart, rawToTrip, t, fmt, col, P, analyze: E.analyzeTrip,
     loadDb, lang: () => lang, state: () => S, invalidate: () => cache.clear(),
     setLang: (l) => { lang = l; try { localStorage.setItem('lang', lang); } catch (e) {} render(); } };
-  render();
-  loadDb();
+  /* After login the app shows ONLY the user's own data from the database (empty account -> illustrative samples). Nothing is recorded or calculated by the site itself:
+     the rides come from the database (Assetto Corsa via live.py / sample seed), the site only calculates the rating from the last rides and displays it. */
+  function boot() {
+    const u = window.Auth && Auth.user();
+    if (!u || !window.DB || !DB.loadMine) { render(); loadDb(); return; }
+    const lv = lang === 'lv';
+    $('#main').innerHTML = `<p class="note" style="padding:28px 16px">${lv ? 'Ielādē tavus datus no datubāzes…' : 'Loading your data from the database…'}</p>`;
+    DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); })
+      .catch((e) => { $('#main').innerHTML = `<div class="card" style="margin:20px"><b>${lv ? 'Neizdevās ielādēt datus' : 'Could not load your data'}</b><p class="note">${esc(String(e && e.message || e))}</p><button class="chip" id="retry">${lv ? 'Mēģināt vēlreiz' : 'Retry'}</button> <a class="chip" href="login.html" style="text-decoration:none">${lv ? 'Pieteikties' : 'Log in'}</a></div>`; const b = $('#retry'); if (b) b.onclick = boot; });
+  }
+  boot();
 })();

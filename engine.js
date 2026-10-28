@@ -35,6 +35,7 @@
     expWeightBase: 10, expWeightExtra: 25, expWeightTau: 150,
     expTauHours: 150,                // experience saturates around a few hundred hours — assumption
     expBuckets: ['city', 'highway', 'night', 'badweather'],
+    lastRides: 20,                   // the score is calculated from the most recent counted rides only
     premiumBase: 300,                // illustrative yearly premium, EUR — NOT a Balcia pricing model
   };
 
@@ -155,12 +156,14 @@
 
   /* Aggregate a set of trip summaries into KPIs and a 0..100 score. profile = {claims3y, expHours, expBuckets:{city,highway,night,badweather}} */
   function scoreDriver(trips, profile) {
-    const c = trips.filter(t => t.counted);
+    // the rating follows the LAST rides (hackathon rule: the website rates the most recent drives)
+    const counted = trips.filter(t => t.counted);
+    const c = counted.slice().sort((a, b) => Date.parse(b.startISO) - Date.parse(a.startISO)).slice(0, P.lastRides).reverse();
     const km = c.reduce((s, t) => s + t.km, 0), sec = c.reduce((s, t) => s + t.durationS, 0), hours = sec / 3600;
     const sum = (f) => c.reduce((s, t) => s + f(t), 0);
     const harsh = sum(t => t.brake + t.accel + t.corner);
     const k = {
-      km: r1(km), hours: r1(hours * 10) / 10, trips: c.length, excluded: trips.length - c.length,
+      km: r1(km), hours: r1(hours * 10) / 10, trips: c.length, excluded: trips.length - counted.length,
       brake: sum(t => t.brake), accel: sum(t => t.accel), corner: sum(t => t.corner),
       harshPer100: km > 0 ? harsh / km * 100 : 0,
       overSafePct: sec > 0 ? sum(t => t.overSafeS) / sec * 100 : 0,
@@ -168,7 +171,7 @@
       severePct: sec > 0 ? sum(t => t.severeS) / sec * 100 : 0,
       phoneEv: sum(t => t.phoneEv), phonePerHour: hours > 0 ? sum(t => t.phoneEv) / hours : 0,
       nightShare: km > 0 ? sum(t => t.darkKm) / km : 0,
-      fatigue: fatigueEvents(trips),
+      fatigue: fatigueEvents(c),
       parkings: sum(t => t.parkings || 0), lotCycles: sum(t => t.lotCycles || 0), lotS: sum(t => t.lotS || 0), lotOverS: sum(t => t.lotOverS || 0), surge: sum(t => t.surge || 0), bump: sum(t => t.bump || 0),
     };
     k.cyclesPer = k.parkings ? k.lotCycles / k.parkings : 0; k.lotOverPct = k.lotS ? k.lotOverS / k.lotS * 100 : 0; k.surgePer10 = k.parkings ? k.surge / k.parkings * 10 : 0;

@@ -53,6 +53,25 @@
     return { source: 'supabase', trips: trips.length, events: events.length, ms: Date.now() - t0 };
   }
 
-  const api = { load, convert, get };
+  /* The logged-in user's OWN data (row-level security): driver profile, cars, trips, events, traces. An empty account gets illustrative samples (Samples.seed). */
+  async function loadMine(demo) {
+    const t0 = Date.now(), A = root.Auth, tok = A && await A.token(), u = A && A.user();
+    if (!tok || !u) throw new Error('login required');
+    const HH = { apikey: KEY, Authorization: 'Bearer ' + tok };
+    const q = async (path, order) => { let out = [], off = 0; for (;;) { const r = await fetch(`${URL}/rest/v1/${path}${path.includes('?') ? '&' : '?'}order=${order}&limit=500&offset=${off}`, { headers: HH }); if (!r.ok) throw new Error(`${path.split('?')[0]}: HTTP ${r.status}`); const j = await r.json(); out = out.concat(j); if (j.length < 500) return out; off += 500; } };
+    const fetchAll = async () => {
+      const drv = (await q('drivers?select=*&user_id=eq.' + u.uid, 'id'))[0]; if (!drv) throw new Error('profile missing');
+      const pre = encodeURIComponent(drv.id + '-') + '*';
+      const [cars, trips, events, traces] = await Promise.all([q('cars?select=*&created_by=eq.' + u.uid, 'id'), q('trips?select=*&driver_id=eq.' + drv.id, 'start_at'), q('trip_events?select=*&trip_id=like.' + pre, 'id'), q('trip_traces?select=*&trip_id=like.' + pre, 'trip_id')]);
+      return { drv, cars, trips, events, traces };
+    };
+    let r = await fetchAll(), seeded = false;
+    if (!r.trips.length && root.Samples) { await root.Samples.seed({ url: URL, key: KEY, token: tok, driver: r.drv, cars: r.cars, demo, sampleDriver: 'martins' }); r = await fetchAll(); seeded = true; }
+    const out = convert({ drivers: [r.drv], cars: r.cars, trips: r.trips, events: r.events, traces: r.traces });
+    demo.cars = out.cars; demo.drivers = out.drivers;
+    return { source: 'supabase', mine: true, sample: r.trips.length > 0 && r.trips.every((t) => t.source === 'sample'), seeded, trips: r.trips.length, events: r.events.length, ms: Date.now() - t0 };
+  }
+
+  const api = { load, loadMine, convert, get };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.DB = api;
 })(typeof self !== 'undefined' ? self : this);

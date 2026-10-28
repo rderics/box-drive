@@ -207,8 +207,10 @@ def main(argv=None) -> None:
         p.add_argument("--osm", action="store_true", help="speed limits from OpenStreetMap roads of central Riga (needs real lat/lon, e.g. a csv)")
         p.add_argument("--zones", help='path speed limit zones in meters: "0-1500:60,1500-:90"')
         p.add_argument("--upload", action="store_true", help="send the finished trip to the OCTA database (ac and csv only)")
-        p.add_argument("--car", default="Assetto Corsa car", help="car name shown in the app (with --upload)")
-        p.add_argument("--plate", default="", help="plate / id of the car (with --upload)")
+        p.add_argument("--car", default="Mercedes-Benz 190E Evo2", help="car name (with --upload)")
+        p.add_argument("--plate", default="AL1990", help="plate of the car; the ride is attached to the user's car with this plate (with --upload)")
+        p.add_argument("--email", default=None, help="account to upload as (default: demo user Ali Aslanov; or env OCTA_EMAIL)")
+        p.add_argument("--password", default=None, help="password of that account (or env OCTA_PASSWORD)")
         p.add_argument("--weather", choices=("dry", "wet", "snow", "fog"), default="dry", help="in-game weather (with --upload)")
 
     d = sub.add_parser("demo", help="synthetic trip")
@@ -275,7 +277,7 @@ def main(argv=None) -> None:
         import upload as up
         payload = up.build_payload(rec, mon.events, mon.dist_m, mon.last_t, car=args.car, plate=args.plate,
                                    limit_kmh=args.limit or 50.0, weather=args.weather, started=started)
-        up.upload(payload)
+        up.upload(payload, email=args.email, password=args.password)
 
 
 if __name__ == "__main__":

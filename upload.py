@@ -1,13 +1,17 @@
 """
-upload.py — sends a finished Assetto Corsa trip (events from driving_events.py) to the OCTA database.
+upload.py — sends a finished Assetto Corsa trip (events from driving_events.py) to the OCTA database (Supabase).
 
-Used by live.py:   python live.py ac --zones "0-1500:60,1500-:90" --upload --car "Mazda MX-5" --plate AC-001
+Used by live.py:   python live.py ac --zones "0-1500:60,1500-:90" --upload
 
-What is sent (the same trip summary the web collector sends to the `ingest-trip` Edge Function):
-  trip totals (km, seconds, counts of harsh braking / acceleration / cornering, seconds over the limit),
-  the key events, and a 1 Hz speed + lateral-g trace. NO coordinates are sent (the game's are fake anyway).
-Rows are stored with source = 'simulator', so they are never mixed up with real phone driving and show up on
-https://rderics.id.lv/octa/live.html within seconds.
+Pipeline: ASSETTO CORSA -> live.py analyses the data -> this file sends the RIDE + EVENT HISTORY to the database -> the web site (login first) reads it
+and calculates the rating from the last rides.
+
+Who it uploads as: the demo user ALI ASLANOV (illustrative, made-up details) with his car Mercedes-Benz 190E Evo2. Override with
+  --email / --password  (or env OCTA_EMAIL / OCTA_PASSWORD).  If the demo user does not exist yet it is created through the public sign-up function.
+(For the demo only: the demo password sits in this file; the real password is stored by Supabase Auth as a bcrypt hash. Do not reuse it anywhere.)
+
+What is sent: trip totals (km, seconds, counts of harsh braking / acceleration / cornering, seconds over the limit), the key events, and a 1 Hz speed +
+lateral-g trace. NO coordinates are sent (the game's are fake anyway). Rows are stored with source = 'simulator'.
 
 Mapping from driving_events.py -> the engine's trip fields
   harsh_braking      -> brake        harsh_acceleration -> accel
@@ -15,7 +19,7 @@ Mapping from driving_events.py -> the engine's trip fields
   weaving            -> corner (data.kind = "weave")     collision -> bump
   speeding           -> over_lim_s / over_safe_s (seconds), severe_s (seconds >= 20 km/h over the limit)
 
-Only the standard library is used. No sign-in: a device account is created once and kept in .octa_device.json.
+Only the standard library is used.
 """
 from __future__ import annotations
 
@@ -29,7 +33,12 @@ from typing import List, Optional, Sequence
 
 URL = "https://qjakepgeqioqrmsufaty.supabase.co"
 KEY = "sb_publishable_NzsKaKSt1Nc-cuuJADWySQ_kLekErYS"       # public (publishable) key, same as in db.js
-CRED_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".octa_device.json")
+
+DEMO_NAME = "Ali Aslanov"
+DEMO_EMAIL = "ali.aslanov@boxdrive.demo"
+DEMO_PASSWORD = "1234554321"                                  # demo account only
+DEMO_CAR = "Mercedes-Benz 190E Evo2"
+DEMO_PLATE = "AL1990"
 
 EVENT_MAP = {"harsh_braking": "brake", "harsh_acceleration": "accel", "harsh_turning": "corner",
              "loss_of_control": "corner", "weaving": "corner", "collision": "bump"}
@@ -52,50 +61,27 @@ def _http(method: str, url: str, body=None, headers: Optional[dict] = None):
             return e.code, {"error": txt[:300]}
 
 
-def _load_cred() -> dict:
-    try:
-        with open(CRED_FILE, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
-
-
-def _save_cred(c: dict) -> None:
-    with open(CRED_FILE, "w", encoding="utf-8") as f:
-        json.dump(c, f)
-
-
-def _login() -> str:
-    c = _load_cred()
-    if not c.get("email"):
-        s, r = _http("POST", f"{URL}/functions/v1/device-register", {}, {"Authorization": "Bearer " + KEY})
-        if s != 200 or "email" not in r:
-            raise RuntimeError(f"device registration failed ({s}): {r}")
-        c = {"email": r["email"], "password": r["password"]}
-        _save_cred(c)
-    s, r = _http("POST", f"{URL}/auth/v1/token?grant_type=password", {"email": c["email"], "password": c["password"]})
+def _login(email: str, password: str):
+    """Returns (access_token, user_id). Creates the account through the public sign-up function when it does not exist."""
+    def grant():
+        return _http("POST", f"{URL}/auth/v1/token?grant_type=password", {"email": email, "password": password})
+    s, r = grant()
+    if s != 200 and r.get("error_code") == "invalid_credentials":
+        s2, r2 = _http("POST", f"{URL}/functions/v1/account", {"email": email, "password": password, "name": DEMO_NAME, "consent": True},
+                       {"Authorization": "Bearer " + KEY})
+        if s2 == 200 and r2.get("ok"):
+            print(f"Created account {email} ({DEMO_NAME}).")
+            s, r = grant()
+        elif r2.get("error") == "email_taken":
+            raise RuntimeError("wrong password for an existing account")
     if s != 200 or "access_token" not in r:
-        os.remove(CRED_FILE)
-        raise RuntimeError(f"sign-in failed ({s}): {r}. Credentials were reset, run again.")
-    return r["access_token"]
-
-
-def _ask_consent() -> bool:
-    c = _load_cred()
-    if c.get("consent"):
-        return True
-    print("\nUpload consent: this trip summary (speeds, g-forces, event counts, no location) will be stored in the OCTA team database\n"
-          "and shown on the public live page as a SIMULATOR trip.")
-    ok = input("Allow? [y/N] ").strip().lower() == "y"
-    if ok:
-        c["consent"] = True
-        _save_cred(c)
-    return ok
+        raise RuntimeError(f"sign-in failed ({s}): {r.get('msg') or r.get('error') or r}")
+    return r["access_token"], r["user"]["id"]
 
 
 def build_payload(points: Sequence, events: Sequence, dist_m: float, duration_s: float, *, car: str, plate: str,
                   limit_kmh: float = 50.0, weather: str = "dry", started: Optional[datetime] = None,
-                  name: str = "Assetto Corsa driver") -> dict:
+                  name: str = DEMO_NAME) -> dict:
     """points: every TelemetryPoint of the trip with t relative to the start; events: driving_events.Event list."""
     started = started or (datetime.now(timezone.utc) - timedelta(seconds=duration_s))
     n = max(1, int(duration_s) + 1)
@@ -154,24 +140,29 @@ def build_payload(points: Sequence, events: Sequence, dist_m: float, duration_s:
     }
 
 
-def upload(payload: dict) -> bool:
-    if not _ask_consent():
-        print("Not uploaded (no consent).")
-        return False
+def upload(payload: dict, email: Optional[str] = None, password: Optional[str] = None) -> bool:
+    email = email or os.environ.get("OCTA_EMAIL") or DEMO_EMAIL
+    password = password or os.environ.get("OCTA_PASSWORD") or DEMO_PASSWORD
     try:
-        token = _login()
+        token, uid = _login(email, password)
     except RuntimeError as exc:
         print("Upload failed:", exc)
         return False
     H = {"Authorization": "Bearer " + token}
+
+    # attach the ride to the user's existing car with the same plate (the Mercedes created by tools/create-ali.js), else the first car, else let the server create it
+    plate = (payload.get("car") or {}).get("plate")
+    s, cars = _http("GET", f"{URL}/rest/v1/cars?select=id,plate,name&created_by=eq.{uid}&order=created_at.asc", None, H)
+    if s == 200 and isinstance(cars, list) and cars:
+        car = next((c for c in cars if plate and c.get("plate") == plate), cars[0] if not plate else None)
+        if car:
+            payload["trip"]["car_id"] = car["id"]
+            payload.pop("car", None)
+
     s, r = _http("POST", f"{URL}/functions/v1/ingest-trip", payload, H)
-    if s == 403 and r.get("driver_id"):                       # first time: record the 'collect' consent, then retry
-        _http("POST", f"{URL}/rest/v1/consents", {"driver_id": r["driver_id"], "purpose": "collect", "granted": True},
-              {**H, "Prefer": "return=minimal"})
-        s, r = _http("POST", f"{URL}/functions/v1/ingest-trip", payload, H)
     if s == 200 and r.get("ok"):
-        print(f"\nUploaded: trip {r['trip_id']} · car {r.get('car_id')} · {r['events']} events · source {r.get('source')}")
-        print("See it live: https://rderics.id.lv/octa/live.html")
+        print(f"\nUploaded as {email}: trip {r['trip_id']} · car {r.get('car_id')} · {r['events']} events · source {r.get('source')}")
+        print("See it on the site: log in at https://rderics.id.lv/octa/ (the rating follows the last rides)")
         return True
     print(f"Upload failed ({s}): {r}", file=sys.stderr)
     return False

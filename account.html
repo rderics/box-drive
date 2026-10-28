@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mans konts — OCTA braucēja rādītājs</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="stylesheet" href="mini.css?v=20261028r">
+<link rel="stylesheet" href="mini.css?v=20261028s">
 </head>
 <body>
 <main class="mini" style="max-width:900px">
@@ -39,8 +39,8 @@
   <div class="row" style="gap:8px"><a class="btn" href="collect.html">Sākt braucienu</a><button class="btn" id="out" type="button" style="opacity:.7">Iziet</button></div>
   <p class="note"><a href="./">← uz demo</a> · <a href="live.html">dzīvie simulatora braucieni</a></p>
 </main>
-<script src="engine.js?v=20261028r"></script>
-<script src="auth.js?v=20261028r"></script>
+<script src="engine.js?v=20261028s"></script>
+<script src="auth.js?v=20261028s"></script>
 <script>
 (function () {
   var E = window.Engine, $ = function (id) { return document.getElementById(id); }, REST = Auth.URL + '/rest/v1/';
@@ -100,7 +100,7 @@
       var res = E.scoreDriver(trips.map(toEngine), prof), pr = E.premiumPreview(res.total);
       $('score').hidden = false;
       $('score').innerHTML = '<div class="row" style="justify-content:space-between;align-items:center"><div><b style="font-size:2rem">' + res.total + '</b> <small>± ' + res.sigma + ' / 100</small> <span class="pill ' + cls(res.band) + '">' + bandLv[res.band] + '</span><br><small>' + res.kpi.km.toFixed(1) + ' km · ' + res.kpi.trips + ' braucieni</small></div><div style="text-align:right"><b>' + pr.eur + ' €</b> <small>−' + pr.discountPct + '% (ilustratīvi, nav Balcia cena)</small></div></div>';
-      advice();
+      if (window.AI_ON) advice();
       $('trips').hidden = false;
       $('trips').innerHTML = '<h3 style="margin-top:0">Braucieni</h3><div style="overflow-x:auto"><table><tr><th>Laiks</th><th class="num">km</th><th class="num">min</th><th class="num">Bremz.</th><th class="num">Paātr.</th><th class="num">Pagr.</th><th class="num">Virs limita, s</th><th>Laikapst.</th><th>Avots</th></tr>' +
         trips.slice(0, 50).map(function (t) { return '<tr><td>' + new Date(t.start_at).toLocaleString('lv-LV') + '</td><td class="num">' + t.km.toFixed(2) + '</td><td class="num">' + (t.duration_s / 60).toFixed(1) + '</td><td class="num">' + t.brake + '</td><td class="num">' + t.accel + '</td><td class="num">' + t.corner + '</td><td class="num">' + t.over_lim_s.toFixed(0) + '</td><td>' + esc(t.weather) + '</td><td>' + esc(t.source) + '</td></tr>'; }).join('') + '</table></div>';
