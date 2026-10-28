@@ -38,10 +38,25 @@
     const tripMeta = {}; for (const t of rows.trips) tripMeta[t.id] = t;
     const rawBy = {};
     for (const r of rows.traces) { const m = tripMeta[r.trip_id]; if (!m) continue; (rawBy[m.driver_id] = rawBy[m.driver_id] || {})[r.trip_id] = { hz: 1, step: r.step, startISO: new Date(m.start_at).toISOString(), weather: m.weather, traffic: m.traffic, v: r.v, ay100: r.ay100, limRuns: r.lim_runs, phoneRanges: r.phone_ranges }; }
-    const drivers = rows.drivers.map((d) => ({
-      id: d.id, name: d.name, licYears: d.lic_years == null ? null : Number(d.lic_years), expHours: Number(d.exp_hours), expBuckets: d.exp_buckets, claims3y: d.claims_3y, note: d.note,
-      trips: (tripBy[d.id] || []).sort((a, b) => Date.parse(a.startISO) - Date.parse(b.startISO)), raws: rawBy[d.id] || {},
-    }));
+    /* experience = the larger of the declared profile and what the rides themselves measured (hours behind the wheel, by road / night / bad weather) */
+    function measured(trips) {
+      const b = { city: 0, highway: 0, night: 0, badweather: 0 }; let h = 0;
+      for (const t of trips) {
+        if (!t.counted || t.mode !== 'car') continue; const x = (t.durationS || 0) / 3600; h += x;
+        if (t.roadType === 'city') b.city += x; else if (t.roadType === 'highway') b.highway += x; else { b.city += x / 2; b.highway += x / 2; }
+        if (t.km > 0 && t.darkKm > 0) b.night += x * Math.min(1, t.darkKm / t.km);
+        if (t.weather && t.weather !== 'dry') b.badweather += x;
+      }
+      return { h, b };
+    }
+    const drivers = rows.drivers.map((d) => {
+      const trips = (tripBy[d.id] || []).sort((a, b) => Date.parse(a.startISO) - Date.parse(b.startISO)), m = measured(trips), eb = d.exp_buckets || {};
+      return {
+        id: d.id, name: d.name, licYears: d.lic_years == null ? null : Number(d.lic_years), expHours: Math.max(Number(d.exp_hours) || 0, m.h),
+        expBuckets: Object.fromEntries(Object.keys(m.b).map((k) => [k, Math.max(Number(eb[k]) || 0, m.b[k])])), claims3y: d.claims_3y, note: d.note,
+        trips, raws: rawBy[d.id] || {},
+      };
+    });
     return { cars, drivers };
   }
 

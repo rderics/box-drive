@@ -157,7 +157,7 @@
   /* Aggregate a set of trip summaries into KPIs and a 0..100 score. profile = {claims3y, expHours, expBuckets:{city,highway,night,badweather}} */
   function scoreDriver(trips, profile) {
     // the rating follows the LAST rides (hackathon rule: the website rates the most recent drives)
-    const counted = trips.filter(t => t.counted);
+    const counted = trips.filter(t => t.counted && !((t.km || 0) < 0.5 || (t.durationS || 0) < 60));   // GPS blips / test taps are not rides
     const c = counted.slice().sort((a, b) => Date.parse(b.startISO) - Date.parse(a.startISO)).slice(0, P.lastRides).reverse();
     const km = c.reduce((s, t) => s + t.km, 0), sec = c.reduce((s, t) => s + t.durationS, 0), hours = sec / 3600;
     const sum = (f) => c.reduce((s, t) => s + f(t), 0);
