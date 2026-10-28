@@ -54,3 +54,11 @@ Verified 28.10: anon → 401; user without consent → 403; with consent → 200
 - **Demo data deleted from the database** (4 demo drivers, 5 cars, 117 synthetic trips, test accounts). The public page still contains the built-in synthetic scenarios from `data.js`, labelled as synthetic. `tools/test-db.js` (database parity) no longer applies. Re-creating the demo rows: `tools/export-seed.js`.
 - **Speed limits:** `riga-limits.json` (from `riga_roads.graphml`, OSMnx) + `limits.js` (collector) / `osm_limits.py` (`live.py csv … --osm`): nearest-road match within 30 m, central Riga only; 79 % of segments carry an OSM `maxspeed`, the rest are assumed 50 (living street 20).
 - **Driver advice:** `recommend` Edge Function (Gemini if `GEMINI_API_KEY` is set as a function secret, otherwise template text; numbers always from the engine).
+
+## Advice pipeline (28.10 night): engine → Jev → Gemini
+1. **Engine** (`engine.js`) computes score, `whatIf` gains (points, euros, cumulative).
+2. **Jev** (TypeSafe AI, a decision model, not an LLM) ranks: Cloudflare Pages Function `/api/jev` asks it *which habit to change first* (choice + confidence) and *how risky the pattern is* (score 0–2). A pick with confidence ≥ 0.6 is moved to the top, otherwise the engine's order (biggest gain) stays. Tested: smoothness first at 0.85 confidence on a sample, risk 1.98/2.
+3. **Gemini** writes the advice text: `/api/gemini` (model chosen automatically among the key's `*-flash` models, currently gemini-3.8-flash). Text containing digits is rejected and replaced by a template sentence; all numbers come from the engine.
+4. `recommend` (Supabase Edge Function) glues them together, caches 24 h, falls back to template text on any failure. **All keys live in the Cloudflare Pages project** (any variable containing JEV/TYPESAFE or GEMINI); nothing is stored in Supabase or the repo.
+Status 28.10 night: Jev works; Gemini returns HTTP 402 "prepayment credits are depleted" until the Google AI Studio balance is topped up (template text is shown meanwhile).
+**Cars:** the account page lets a logged-in user add cars by hand (plate, make, model, year, fuel, cc, kW, odometer, VIN, registration certificate no., OCTA expiry, claims in 3 years) — stored in `cars` as `self-declared` (no CSDD access); `collect.html` has a "my car" selector.
