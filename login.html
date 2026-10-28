@@ -160,7 +160,7 @@ label.f{font-size:14px;font-weight:700;margin:6px 0 6px;display:block}label.f i{
   </div>
 </div>
 <p class="disc" id="disc">Simulēta pieteikšanās, veidota pēc LTAB lietotnes. Nav oficiāls LTAB produkts, nekas netiek sūtīts uz e-ID pakalpojumiem.</p>
-<script src="auth.js?v=20261029b"></script>
+<script src="auth.js?v=20261029c"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); }, lang = 'lv', pick = null, busy = false;
@@ -177,8 +177,7 @@ label.f{font-size:14px;font-weight:700;margin:6px 0 6px;display:block}label.f i{
   function show(n) { Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.toggle('on', s.id === 's' + n); }); }
   function clock() { var d = new Date(); $('clk').textContent = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); } clock(); setInterval(clock, 20000);
 
-  var people = Auth.remembered();    // every account used on this device
-  var cur = Auth.user(); if (cur && !people.some(function (p) { return p.email === cur.email; })) people.unshift(cur);
+  var people = [{ name: 'Rinalds Dērics', email: 'rinalds.derics@gmail.com' }, { name: 'Ali Aslanov', email: 'ali.aslanov@boxdrive.demo' }];   // the two preset demo users
   if (location.hash === '#lv' || location.hash === '#en') { lang = location.hash.slice(1); }
   function initials(n) { return String(n || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
   function persons() {
@@ -208,7 +207,7 @@ label.f{font-size:14px;font-weight:700;margin:6px 0 6px;display:block}label.f i{
     var code = String(1000 + Math.floor(Math.random() * 9000)); $('code').textContent = code; $('code2').textContent = code;
     $('whoLine').innerHTML = T[lang].as + ' <b>' + String(pick.name || pick.email).replace(/</g, '') + '</b>'; $('pgt').textContent = T[lang].wait;
     var dots = Array.prototype.slice.call(document.querySelectorAll('.pin i')); dots.forEach(function (d) { d.classList.remove('on'); });
-    var t0 = Date.now(), dur = 4200, session = Auth.eid(pick.email).catch(function (e) { return e; });
+    var t0 = Date.now(), dur = 4200, session = Auth.demo(pick.email).catch(function (e) { return e; });
     var iv = setInterval(function () {
       var f = Math.min(1, (Date.now() - t0) / dur); $('pg').style.width = (f * 100) + '%';
       dots.forEach(function (d, i) { d.classList.toggle('on', f > 0.45 + i * 0.12); });
@@ -217,7 +216,7 @@ label.f{font-size:14px;font-weight:700;margin:6px 0 6px;display:block}label.f i{
         clearInterval(iv);
         session.then(function (s) {
           busy = false;
-          if (s instanceof Error) { show(3); people = Auth.remembered(); pick = null; persons(); $('msg').textContent = T[lang].exp; return; }
+          if (s instanceof Error) { show(3); pick = null; persons(); $('msg').textContent = T[lang].exp; return; }
           $('hi').textContent = String(s.name || s.email).split(' ')[0]; show(5);
           setTimeout(function () { var seen = false; try { seen = localStorage.getItem('octa_tos') === '1'; } catch (e) {} if (seen) go(); else show(6); }, 1400);
         });

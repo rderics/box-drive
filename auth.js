@@ -39,6 +39,12 @@
     if (t.s !== 200 || !t.j.access_token) { delete m.byEmail[email]; try { localStorage.setItem(RK, JSON.stringify(m)); } catch (e) {} throw new Error('expired'); }
     const g = fromGrant(t.j); put(g); return g;
   }
-  const api = { URL, KEY, signup, login, logout, token, user: get, remembered, forget, eid };
+  /* public DEMO sign-in for the two preset users (Edge Function demo-login allows only those two e-mails) */
+  async function demo(email) {
+    const r = await fetch(URL + '/functions/v1/demo-login', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok || !j.access_token) throw new Error(j.error || 'demo_login');
+    const g = fromGrant(j); put(g); return g;
+  }
+  const api = { URL, KEY, signup, login, logout, token, user: get, remembered, forget, eid, demo };
   root.Auth = api;
 })(typeof self !== 'undefined' ? self : this);
