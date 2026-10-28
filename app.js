@@ -18,13 +18,21 @@
   /* ---------- data prep ---------- */
   const PROFILE_DEMO = { claims3y: 0, expHours: 300, expBuckets: { city: 60, highway: 60, night: 60, badweather: 60 } };
   function allDrivers() { return D.drivers.concat(S.imports); }
-  /* After a signed-in user's data loads: append FICTIONAL example drivers + their cars (marked fictional) so the user sees several cars with clearly different driver scores.
-     The user's own driver stays D.drivers[0] and the user's real cars stay first in D.cars. Used by boot() and App.reloadMine(). */
+  /* After a signed-in user's data loads: add FICTIONAL example cars that the same user owns and drives (one account = one person, all their cars).
+     Each example car gets the built-in example rides of that car, re-assigned to the user and marked fictional, so every car has its own car score.
+     The driver score stays on the user's REAL rides only (see real()). Used by boot() and App.reloadMine(). */
+  const EX = { golf: 'elina', bmw: 'davis', volvo: 'aivars' };
   function addExamples() {
-    const haveD = new Set(D.drivers.map((d) => d.id)), haveC = new Set((D.cars || []).map((c) => c.id)); D.cars = D.cars || [];
-    for (const id of ['elina', 'davis', 'aivars']) { const d = ORIG.drivers.find((x) => x.id === id); if (d && !haveD.has(id)) D.drivers.push(Object.assign({}, d, { fictional: true })); }
-    for (const id of ['golf', 'bmw', 'volvo']) { const c = ORIG.cars.find((x) => x.id === id); if (c && !haveC.has(id)) D.cars.push(Object.assign({}, c, { mine: true, fictional: true })); }
+    const me = D.drivers[0]; if (!me) return; D.cars = D.cars || [];
+    const haveC = new Set(D.cars.map((c) => c.id)), haveT = new Set(me.trips.map((t) => t.id));
+    for (const cid of Object.keys(EX)) {
+      const c = ORIG.cars.find((x) => x.id === cid), src = ORIG.drivers.find((x) => x.id === EX[cid]); if (!c || !src) continue;
+      if (!haveC.has(cid)) D.cars.push(Object.assign({}, c, { mine: true, fictional: true }));
+      for (const t of src.trips) if (t.carId === cid && !haveT.has('ex-' + t.id)) me.trips.push(Object.assign({}, t, { id: 'ex-' + t.id, fictional: true }));
+    }
+    me.trips.sort((a, b) => Date.parse(a.startISO) - Date.parse(b.startISO));
   }
+  const real = (trips) => trips.filter((t) => !t.fictional);
   const cache = new Map();
   function carsOf(d) { const ids = new Set(d.trips.filter((x) => x.carId).map((x) => x.carId)); return (D.cars || []).filter((c) => ids.has(c.id) || c.mine); }
   /* car score: all trips on the car by ALL drivers + the car's own claims history; experience = km-weighted mean of its drivers */
@@ -37,9 +45,9 @@
     const drivers = Object.values(by).map((x) => { const rest = trips.filter((t) => own.get(t) !== x.d.id); const w = E.scoreDriver(rest, profile); return { d: x.d, km: x.km, share: x.km / tot, impact: res.total - w.total, res: resOf(x.d) }; }).sort((a, b) => b.km - a.km);
     return { car, res, trips, drivers, profile };
   }
-  function resOf(d) { const k = d.id + ':' + d.trips.length; if (!cache.has(k)) cache.set(k, E.scoreDriver(d.trips, d)); return cache.get(k); }
+  function resOf(d) { const k = d.id + ':' + d.trips.length; if (!cache.has(k)) cache.set(k, E.scoreDriver(real(d.trips), d)); return cache.get(k); }
   function weekly(d) {
-    const g = {}; for (const tr of d.trips) { (g[E.weekKey(tr.startISO)] = g[E.weekKey(tr.startISO)] || []).push(tr); }
+    const g = {}; for (const tr of real(d.trips)) { (g[E.weekKey(tr.startISO)] = g[E.weekKey(tr.startISO)] || []).push(tr); }
     return Object.keys(g).sort().map((w) => { const r = E.scoreDriver(g[w], d); return { w, score: r.total, km: r.kpi.km, ok: r.kpi.km > 1 }; }).filter((x) => x.ok);
   }
   function rawToTrip(raw, extra) {
