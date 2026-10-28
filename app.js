@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const E = Engine, P = E.P, D = DEMO;
+  const ORIG = { drivers: (DEMO.drivers || []).slice(), cars: (DEMO.cars || []).slice() };   // built-in data.js drivers/cars, captured before DB.loadMine overwrites DEMO
   const AI_ON = false;   // hackathon: no AI-agent processing for now (accounting + ready UI only); flip to true to bring the advice card back
   let lang = 'lv'; try { lang = localStorage.getItem('lang') || lang; } catch (e) {}
   const t = (k) => (I18N[lang][k] != null ? I18N[lang][k] : I18N.en[k] != null ? I18N.en[k] : k);
@@ -14,6 +15,13 @@
   /* ---------- data prep ---------- */
   const PROFILE_DEMO = { claims3y: 0, expHours: 300, expBuckets: { city: 60, highway: 60, night: 60, badweather: 60 } };
   function allDrivers() { return D.drivers.concat(S.imports); }
+  /* After a signed-in user's data loads: append FICTIONAL example drivers + their cars (marked fictional) so the user sees several cars with clearly different driver scores.
+     The user's own driver stays D.drivers[0] and the user's real cars stay first in D.cars. Used by boot() and App.reloadMine(). */
+  function addExamples() {
+    const haveD = new Set(D.drivers.map((d) => d.id)), haveC = new Set((D.cars || []).map((c) => c.id)); D.cars = D.cars || [];
+    for (const id of ['elina', 'davis', 'aivars']) { const d = ORIG.drivers.find((x) => x.id === id); if (d && !haveD.has(id)) D.drivers.push(Object.assign({}, d, { fictional: true })); }
+    for (const id of ['golf', 'bmw', 'volvo']) { const c = ORIG.cars.find((x) => x.id === id); if (c && !haveC.has(id)) D.cars.push(Object.assign({}, c, { mine: true, fictional: true })); }
+  }
   const cache = new Map();
   function carsOf(d) { const ids = new Set(d.trips.filter((x) => x.carId).map((x) => x.carId)); return (D.cars || []).filter((c) => ids.has(c.id) || c.mine); }
   /* car score: all trips on the car by ALL drivers + the car's own claims history; experience = km-weighted mean of its drivers */
@@ -327,7 +335,7 @@
   });
   $('#lang').addEventListener('click', () => { lang = lang === 'en' ? 'lv' : 'en'; try { localStorage.setItem('lang', lang); } catch (e) {} render(); });
   window.App = { E, D, carsOf, carRes, allDrivers, resOf, weekly, adviceText, ring, trendSvg, speedChart, rawToTrip, t, fmt, col, P, analyze: E.analyzeTrip,
-    animateIn, loadDb, reloadMine: () => DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); return info; }), lang: () => lang, state: () => S, invalidate: () => cache.clear(),
+    animateIn, loadDb, reloadMine: () => DB.loadMine(D).then((info) => { addExamples(); S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); return info; }), lang: () => lang, state: () => S, invalidate: () => cache.clear(),
     setLang: (l) => { lang = l; try { localStorage.setItem('lang', lang); } catch (e) {} render(); } };
   /* After login the app shows ONLY the user's own data from the database (empty account -> illustrative samples). Nothing is recorded or calculated by the site itself:
      the rides come from the database (Assetto Corsa via live.py / sample seed), the site only calculates the rating from the last rides and displays it. */
@@ -336,7 +344,7 @@
     if (!u || !window.DB || !DB.loadMine) { render(); loadDb(); return; }
     const lv = lang === 'lv';
     $('#main').innerHTML = `<p class="note" style="padding:28px 16px">${lv ? 'Ielādē tavus datus no datubāzes…' : 'Loading your data from the database…'}</p>`;
-    DB.loadMine(D).then((info) => { S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); })
+    DB.loadMine(D).then((info) => { addExamples(); S.dbInfo = info; S.driver = D.drivers[0].id; cache.clear(); render(); })
       .catch((e) => { $('#main').innerHTML = `<div class="card" style="margin:20px"><b>${lv ? 'Neizdevās ielādēt datus' : 'Could not load your data'}</b><p class="note">${esc(String(e && e.message || e))}</p><button class="chip" id="retry">${lv ? 'Mēģināt vēlreiz' : 'Retry'}</button> <a class="chip" href="login.html" style="text-decoration:none">${lv ? 'Pieteikties' : 'Log in'}</a></div>`; const b = $('#retry'); if (b) b.onclick = boot; });
   }
   boot();

@@ -104,6 +104,8 @@
   const A = () => window.App, lang = () => A().lang(), P = (k) => L[lang()][k] != null ? L[lang()][k] : L.lv[k];
   const st = { bumpOpen: false, bumpEv: null, ev: null, car: null, onboard: null, tab: 'cars', trip: null, kpi: null, crash: false, auto: true, share: true };
   let root = null;
+  const LL = (x, y) => (lang() === 'lv' ? x : y);
+  const exPill = () => `<span class="pill mute" style="font-size:10.5px;padding:2px 8px;margin-left:8px;vertical-align:middle;letter-spacing:.04em">${LL('PIEMĒRS', 'EXAMPLE')}</span>`;
 
   const dt = (iso) => { const d = new Date(Date.parse(iso) + 3 * 3600e3); const p = (n) => String(n).padStart(2, '0'); return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}. ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
   const mini = (s, c) => { const R = 20, C = 2 * Math.PI * R, o = C * (1 - s / 100); return `<div class="mini"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="${R}" fill="none" stroke="#e6e4ec" stroke-width="5"/><circle cx="25" cy="25" r="${R}" fill="none" stroke="var(--${c})" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" transform="rotate(-90 25 25)" class="rgc" style="--c:${C}"/></svg><b data-count="${Math.round(s)}">${Math.round(s)}</b></div>`; };
@@ -127,7 +129,7 @@
   const mycars = (d) => A().carsOf(d);
   function carCard(car, ctx) {
     const a = A(), x = a.carRes(car), c = a.col(x.res.total), m = money(x.res.total), others = x.drivers.filter((k) => k.d.id !== ctx.d.id).map((k) => k.d.name.split(' ')[0]);
-    return `<div class="pcard"><div class="top">${car.name}</div><div class="dash"></div>
+    return `<div class="pcard"><div class="top">${car.name}${car.fictional ? exPill() : ''}</div><div class="dash"></div>
       <div class="body"><div class="carrow"><div class="thumb">${car.photo ? `<img src="${car.photo}" alt="${esc(car.name)}">` : I('car')}</div><div class="facts">
         <div><b>${car.plate}</b><small>${P('reg')}</small></div><div><b>${car.octa ? new Date(car.octa).toLocaleDateString(a.lang() === 'lv' ? 'lv-LV' : 'en-GB') : '–'}</b><small>${P('octa')}</small></div><div><b>${car.claims3y}</b><small>${P('hist')}</small></div></div></div></div>
       <div class="dash"></div>
@@ -165,6 +167,19 @@
     return `<div class="pcard"><div class="body"><div class="scorecard"><div class="ring">${a.ring(r.total, c)}<div class="n"><div><b data-count="${Math.round(r.total)}">${a.fmt(r.total, 0)}</b><small>± ${a.fmt(r.sigma, 0)} · ${a.t('of100')}</small></div></div></div>
       <div><span class="pill ${c}">${a.t('band_' + r.band)}</span><p style="margin:10px 0 2px;font-size:14px"><b>${P('reliab')}:</b> ${P(conf)}</p><small style="color:#7c7c84">${a.fmt(r.kpi.km, 0)} ${P('km')} · ${r.kpi.trips} ${a.t('trips_scored')}</small></div></div></div>
       ${tw ? `<div class="dash"></div><div class="body" style="padding-top:8px"><b style="font-size:15px">${P('d_trend')}</b>${a.trendSvg(tw)}</div>` : ''}</div>`; };
+  /* Proposed partner reward (fictional): keep the driver score at 80+ for a half-year -> -30 % fuel for the next half-year. Illustrative only. */
+  function circleK(r) {
+    const a = A(), now = new Date(), y = now.getFullYear(), h2 = now.getMonth() >= 6, DAY = 864e5, TOT = 182, TH = 80;
+    const days = Math.max(1, Math.min(TOT, Math.floor((Date.UTC(y, now.getMonth(), now.getDate()) - Date.UTC(y, h2 ? 6 : 0, 1)) / DAY) + 1)), sc = Math.round(r.total), ok = sc >= TH, n = TH - sc;
+    const left = LL(n % 10 === 1 && n % 100 !== 11 ? `Vēl ${n} punkts līdz 80` : `Vēl ${n} punkti līdz 80`, `${n} more ${n === 1 ? 'point' : 'points'} to 80`);
+    return `<div class="pcard"><div class="body"><div style="display:flex;gap:12px;align-items:center"><span class="red">${I('gauge', 28)}</span><b style="font-size:16px;line-height:1.3">${LL('Circle K degviela −30 %', 'Circle K fuel −30 %')}</b></div>
+      <p style="margin:10px 0 12px;font-size:14px;line-height:1.45">${LL('Ja tavs braucēja rādītājs 6 mēnešus paliek virs 80, nākamos 6 mēnešus saņem −30 % uzpildē.', 'Keep your driver score above 80 for 6 months and get −30 % on refuelling for the next 6 months.')}</p>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><b>${LL('Pusgads', 'Half-year')} ${h2 ? '1.07.' : '1.01.'}</b><span style="color:#7c7c84">${days} / ${TOT} ${LL('dienas', 'days')}</span></div>${mbar(days / TOT * 100, 'brand')}
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:14px"><b>${LL('Tavs rādītājs', 'Your score')} ${a.fmt(sc, 0)}</b><span style="color:#7c7c84">${LL('slieksnis', 'threshold')} ${TH}</span></div>
+      <div class="mbar" style="position:relative;overflow:visible;margin-bottom:22px">${'<i style="width:' + Math.max(3, Math.min(100, sc)) + '%;background:var(--' + (ok ? 'good' : 'mid') + ')"></i>'}<u style="position:absolute;left:${TH}%;top:-5px;width:2px;height:16px;background:#232227;text-decoration:none"></u><span style="position:absolute;left:${TH}%;top:13px;transform:translateX(-50%);font-size:11.5px;color:#7c7c84">${TH}</span></div>
+      <span class="pill ${ok ? 'good' : 'mid'}">${ok ? LL('Ceļā uz atlaidi', 'On track for the discount') : left}</span>
+      <p style="margin:10px 0 0;font-size:12.5px;color:#7c7c84">${LL('Piedāvāts partneris, ilustratīvi', 'Proposed partner, illustrative')}</p></div></div>`;
+  }
   function drive() {
     const { d, r } = data(), a = A(), c = a.col(r.total), adv = a.adviceText(r, d), tw = a.weekly(d), kp = kpis(r), cs = mycars(d).map((car) => ({ car, x: a.carRes(car) }));
     const last = d.trips.filter((x) => x.counted).sort((x, y) => Date.parse(y.startISO) - Date.parse(x.startISO))[0];
@@ -175,12 +190,13 @@
     const hero = sav > 0
       ? `<div class="costrow"><div><small>${P('no_score')}</small><b>${base} €</b></div><span class="red" style="font-size:22px">→</span><div><small>${P('with_score')}</small><b class="big green">${eur} €</b></div></div><div style="margin:10px 0 2px"><span class="pill good">−${sav} € · −${pct}%</span> <small style="color:#7c7c84">${P('per_year')} · ${cs.length} ${P('cars_n')}</small></div>`
       : `<div class="costrow"><div><small>${P('no_score')}</small><b class="big">${base} €</b></div></div><div style="margin:10px 0 2px"><span class="pill mid">${P('no_disc_yet')}</span> <small style="color:#7c7c84">${cs.length} ${P('cars_n')}</small></div>`;
-    const carRows = cs.map(({ car, x }) => { const m = money(x.res.total), cc = a.col(x.res.total); return `<button class="lrow" data-p="car:${car.id}">${mini(x.res.total, cc)}<span class="t"><b>${car.name}</b><small>${car.plate} · ${P('drives')} ${x.drivers.map((k) => (k.d.id === d.id ? P('you') : k.d.name.split(' ')[0])).join(', ')}</small></span><span class="v">${m.eur} €<small>${m.discountPct > 0 ? '−' + m.discountPct + '%' : P('no_disc_yet')}</small></span><span style="color:#b9b8c2">${I('chev', 20)}</span></button>`; }).join('');
+    const carRows = cs.map(({ car, x }) => { const m = money(x.res.total), cc = a.col(x.res.total); return `<button class="lrow" data-p="car:${car.id}">${mini(x.res.total, cc)}<span class="t"><b>${car.name}${car.fictional ? exPill() : ''}</b><small>${car.plate} · ${P('drives')} ${x.drivers.map((k) => (k.d.id === d.id ? P('you') : k.d.name.split(' ')[0])).join(', ')}</small></span><span class="v">${m.eur} €<small>${m.discountPct > 0 ? '−' + m.discountPct + '%' : P('no_disc_yet')}</small></span><span style="color:#b9b8c2">${I('chev', 20)}</span></button>`; }).join('');
     return `<h1>${P('d_title')}</h1>
     <div class="pcard"><div class="body"><small style="color:#7c7c84">${P('octa_cost')}</small>${hero}<p style="font-size:12.5px;color:#7c7c84;margin:8px 0 0">${P('per_car_note')}</p></div>
       <div class="dash"></div><div class="body bgrow"><span class="live"></span><div style="font-size:14px;line-height:1.4"><b>${P('bg_on')}</b><br><span style="color:#7c7c84">${P('bg_txt')}${last ? ' ' + P('bg_last') + ' ' + dt(last.startISO) : ''}</span></div></div></div>
-    <h2>${P('my_cars')} · ${P('car_score')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${carRows}</div></div>
+    <h2>${P('my_cars')} · ${P('car_score')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${carRows}</div></div>${cs.some((y) => y.car.fictional) ? `<p class="disc" style="text-align:left;margin:6px 0 0">${LL('Auto ar zīmi PIEMĒRS un to braucēji ir izdomāti — tie rāda, ka vairāki auto ar dažādiem braucējiem dod atšķirīgus rādītājus.', 'Cars marked EXAMPLE and their drivers are fictional — they show how several cars with different drivers get different scores.')}</p>` : ''}
     <h2>${P('you_driver')}</h2><p class="lead" style="font-size:14.5px;margin-bottom:10px">${P('you_lead')}</p>${scoreCard(r, c, tw)}
+    ${circleK(r)}
     <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>
     <button class="pbtn out" data-p="calc" style="margin-top:12px">▶ ${A().lang() === 'lv' ? 'Kā rādītājs tiek aprēķināts' : 'How the score is calculated'}</button>
     <button class="pbtn" data-p="coach" style="margin-top:10px">✦ ${A().lang() === 'lv' ? 'AI treneris: ko uzlabot?' : 'AI coach: what to improve?'}</button>
@@ -195,13 +211,13 @@
     const a = A(), { d } = data(), car = a.D.cars.find((x) => x.id === st.car); if (!car) { st.car = null; return drive(); }
     const x = a.carRes(car), r = x.res, c = a.col(r.total), kp = kpis(r), adv = a.adviceText(r, { trips: x.trips });
     kp.find((y) => y.key === 'claims').base = 'LTAB · ' + car.name;
-    const drows = x.drivers.map((k) => `<div class="lrow" style="cursor:default"><span class="t"><b>${k.d.id === d.id ? P('you') : esc(k.d.name)}</b><small>${a.fmt(k.share * 100, 0)}% ${P('share')} · ${P('own_score')} ${a.fmt(k.res.total, 0)}</small>${mbar(k.share * 100, 'brand')}</span><span class="v" style="color:var(--${k.impact >= 0 ? 'good' : 'bad'})">${k.impact >= 0 ? '+' : ''}${a.fmt(k.impact, 0)}<small>${P('impact')}</small></span></div>`).join('');
+    const drows = x.drivers.map((k) => `<div class="lrow" style="cursor:default"><span class="t"><b>${k.d.id === d.id ? P('you') : esc(k.d.name)}${k.d.fictional ? exPill() : ''}</b><small>${a.fmt(k.share * 100, 0)}% ${P('share')} · ${P('own_score')} ${a.fmt(k.res.total, 0)}</small>${mbar(k.share * 100, 'brand')}</span>${x.drivers.length > 1 ? `<span class="v" style="color:var(--${k.impact >= 0 ? 'good' : 'bad'})">${k.impact >= 0 ? '+' : ''}${a.fmt(k.impact, 0)}<small>${P('impact')}</small></span>` : ''}</div>`).join('');
     const trips = x.trips.slice().sort((p, q) => Date.parse(q.startISO) - Date.parse(p.startISO)).slice(0, 6);
-    return `<button class="backrow" data-p="backcar">${I('back', 22)} ${P('tab_drive')}</button><h1 class="sm">${car.name}</h1><div style="color:#7c7c84;margin:-4px 0 12px">${car.plate}</div>
+    return `<button class="backrow" data-p="backcar">${I('back', 22)} ${P('tab_drive')}</button><h1 class="sm">${car.name}</h1><div style="color:#7c7c84;margin:-4px 0 12px">${car.plate}${car.fictional ? exPill() : ''}</div>
     <p class="lead" style="font-size:14.5px">${P('car_lead')}</p>
     <div class="pcard"><div class="body"><small style="color:#7c7c84">${P('octa_cost')}</small>${priceHero(r.total, true)}</div></div>
     ${scoreCard(r, c, null)}
-    <h2>${P('who_drives')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${x.drivers.length > 1 ? drows : `<div class="lrow" style="cursor:default"><span class="t"><b>${P('only_you')}</b></span></div>`}</div></div><p class="disc" style="text-align:left;margin:6px 0 0">${P('other_consent')}</p>
+    <h2>${P('who_drives')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${x.drivers.length > 1 || (x.drivers[0] && x.drivers[0].d.id !== d.id) ? drows : `<div class="lrow" style="cursor:default"><span class="t"><b>${P('only_you')}</b></span></div>`}</div></div><p class="disc" style="text-align:left;margin:6px 0 0">${P('other_consent')}</p>
     <h2>${P('why_t')}</h2><div class="advbox ${c}"><b>${a.t('advice_t')}</b><p>${adv.txt.replace(/</g, '&lt;')}</p></div>${planHtml(plan(r))}
     <h2>${P('d_components')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${kpiRows(kp)}</div></div>
     <h2>${P('car_trips')}</h2><div class="pcard"><div class="body" style="padding:6px 14px">${tripRows(trips, d)}</div></div>`;
@@ -266,7 +282,7 @@
       <div class="legend" style="margin-top:8px"><span><i style="background:#1f9d63"></i>${P('r_ok')}</span><span><i style="background:#d98a00"></i>${P('r_near')}</span><span><i style="background:#c0392b"></i>${P('r_bad')}</span></div>`;
   }
   function tripScreen() {
-    const { d } = data(), a = A(), t = d.trips.find((x) => x.id === st.trip);
+    const a = A(), me = data().d, d = me.trips.some((x) => x.id === st.trip) ? me : (a.allDrivers().find((x) => x.trips.some((y) => y.id === st.trip)) || me), t = d.trips.find((x) => x.id === st.trip);
     if (!t) { st.trip = null; return drive(); }
     const raw = d.raws && d.raws[t.id], car = (a.D.cars || []).find((c) => c.id === t.carId);
     let body = `<p class="lead" style="font-size:14px">${a.t('no_trace')}</p>`;
@@ -281,7 +297,7 @@
         <h2>${P('ev_t')} · ${kp.length}</h2><div class="pcard"><div class="body" style="padding:12px 14px">${tl}</div></div>
         <h2>${P('speed_t')}</h2><div class="pcard"><div class="body">${a.speedChart(tr, kp.filter((e) => ['brake', 'accel', 'corner', 'phone'].includes(e.type)).map((e) => ({ i: e.j, type: e.type })))}</div></div>`;
     }
-    return `<button class="backrow" data-p="back">${I('back', 22)} ${st.car ? (car ? car.name : P('tab_drive')) : P('tab_drive')}</button><h1 class="sm">${dt(t.startISO)}</h1>
+    return `<button class="backrow" data-p="back">${I('back', 22)} ${st.car ? (car ? car.name : P('tab_drive')) : P('tab_drive')}</button><h1 class="sm">${dt(t.startISO)}${d.fictional ? exPill() : ''}</h1>
     <div class="pcard"><div class="body"><div style="display:flex;gap:16px;flex-wrap:wrap"><div><b style="font-size:20px">${a.fmt(t.km)}</b><br><small style="color:#7c7c84">${P('km')}</small></div><div><b style="font-size:20px">${a.fmt(t.durationS / 60, 0)}</b><br><small style="color:#7c7c84">min</small></div><div><b style="font-size:20px">${a.t(t.weather)}</b><br><small style="color:#7c7c84">${a.t('weather')}</small></div>${car ? `<div><b style="font-size:20px">${car.name.split(' ').slice(-1)[0]}</b><br><small style="color:#7c7c84">${P('car_score')}</small></div>` : ''}</div></div></div>
     ${!t.counted ? `<div class="advbox"><b>${t.mode !== 'car' ? P('why_train') : P('why_pass')}</b></div>` : ''}${body}`;
   }
