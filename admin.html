@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin — Box-Driver</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  :root{--bg:#10141c;--card:#1a202c;--line:#2a3344;--text:#e8ecf2;--mute:#97a1b3;--accent:#ff7a45;--bad:#ff6b6b;--good:#3dd391}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;background:#0b0e14;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header b{font-size:18px;letter-spacing:.5px} header b i{color:var(--accent);font-style:normal}
+  main{max-width:1200px;margin:0 auto;padding:18px 16px 60px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type=search]{flex:1;min-width:220px;padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:15px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--text);padding:7px 12px;border-radius:9px}
+  button:hover{border-color:var(--accent)} button.danger{border-color:#5a2a2a;color:var(--bad)} button.danger:hover{background:#2a1517;border-color:var(--bad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
+  table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+  th{color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.6px} td.num,th.num{text-align:right}
+  tr.u:hover{background:#202838;cursor:pointer} tr.sel{background:#262e42}
+  .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid var(--line);color:var(--mute)} .tag.admin{color:var(--accent);border-color:var(--accent)} .tag.sample{color:#8ab4ff;border-color:#3a4f7a} .tag.simulator{color:var(--good);border-color:#1f5a40}
+  .note{color:var(--mute);font-size:13px} #toast{position:fixed;right:16px;bottom:16px;background:#0b0e14;border:1px solid var(--line);padding:10px 14px;border-radius:10px;display:none}
+  h2{margin:0 0 8px;font-size:18px} .grid{display:grid;grid-template-columns:1fr;gap:14px} @media(min-width:980px){.grid.two{grid-template-columns:1.1fr 1fr}}
+  .scroll{overflow:auto;max-height:520px}
+</style>
+</head>
+<body>
+<header><b>BOX<i>·</i>DRIVER <i>admin</i></b><div class="row"><span id="who" class="note"></span><button id="out" type="button">Iziet</button></div></header>
+<main>
+  <div class="row"><input id="q" type="search" placeholder="Meklēt lietotāju: vārds, e-pasts vai ID…" autocomplete="off"><button id="reload" type="button">Atjaunot</button></div>
+  <p class="note" id="count">Ielādē…</p>
+  <div class="grid two">
+    <section class="card"><h2>Lietotāji</h2><div class="scroll"><table id="users"><thead><tr><th>Vārds</th><th>E-pasts</th><th class="num">Braucieni</th><th class="num">Auto</th><th>Pēdējais</th><th></th></tr></thead><tbody></tbody></table></div></section>
+    <section class="card" id="detail"><h2>Izvēlies lietotāju</h2><p class="note">Spied uz rindas kreisajā pusē, lai redzētu viņa braucienus un auto, un dzēstu tos.</p></section>
+  </div>
+  <p class="note" style="margin-top:18px">Visas dzēšanas darbības tiek ierakstītas žurnālā (admin_log). Administratoru dzēst nevar. Dzēšana ir neatgriezeniska.</p>
+</main>
+<div id="toast"></div>
+<script src="auth.js?v=20261028t"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); }, API = Auth.URL + '/functions/v1/admin', cur = null, tok = null, timer = null;
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var fmt = function (iso) { return iso ? new Date(iso).toLocaleString('lv-LV') : '–'; };
+  function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 3500); }
+  $('out').onclick = function () { Auth.logout(); location.href = 'login.html'; };
+  function call(body) { return Auth.token().then(function (t) { if (!t) { location.replace('login.html'); throw new Error('login'); } return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: Auth.KEY, Authorization: 'Bearer ' + t }, body: JSON.stringify(body) }); }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); }); }
+
+  function load() {
+    return call({ action: 'list', q: $('q').value }).then(function (r) {
+      $('count').textContent = r.users.length + ' no ' + r.total + ' lietotājiem';
+      $('users').querySelector('tbody').innerHTML = r.users.map(function (u) { return '<tr class="u' + (cur && cur.driver_id === u.driver_id ? ' sel' : '') + '" data-id="' + esc(u.driver_id) + '"><td><b>' + esc(u.name) + '</b> ' + (u.admin ? '<span class="tag admin">admin</span>' : '') + '<br><span class="note">' + esc(u.driver_id) + '</span></td><td>' + esc(u.email) + '</td><td class="num">' + u.rides + '</td><td class="num">' + u.cars + '</td><td>' + fmt(u.last_ride) + '</td><td></td></tr>'; }).join('') || '<tr><td colspan="6" class="note">Nekas nav atrasts.</td></tr>';
+      Array.prototype.forEach.call(document.querySelectorAll('tr.u'), function (tr) { tr.onclick = function () { var u = r.users.find(function (x) { return x.driver_id === tr.dataset.id; }); cur = u; open(u); Array.prototype.forEach.call(document.querySelectorAll('tr.u'), function (x) { x.classList.toggle('sel', x === tr); }); }; });
+    }).catch(function (e) { if (e.message !== 'login') $('count').textContent = 'Kļūda: ' + e.message; });
+  }
+  function open(u) {
+    $('detail').innerHTML = '<h2>' + esc(u.name) + '</h2><p class="note">Ielādē…</p>';
+    call({ action: 'rides', driver_id: u.driver_id }).then(function (r) {
+      var cars = r.cars.map(function (c) { return '<tr><td><b>' + esc(c.plate || '') + '</b> ' + esc(c.make || '') + ' ' + esc(c.model || c.name) + (c.data_source === 'sample' ? ' <span class="tag sample">paraugs</span>' : '') + '</td><td class="num"><button class="danger" data-car="' + esc(c.id) + '" type="button">Dzēst auto</button></td></tr>'; }).join('');
+      var rides = r.rides.map(function (t) { return '<tr><td>' + fmt(t.start_at) + '</td><td class="num">' + Number(t.km).toFixed(1) + ' km</td><td class="num">' + (t.duration_s / 60).toFixed(0) + ' min</td><td><span class="tag ' + esc(t.source) + '">' + esc(t.source) + '</span></td><td class="num"><button class="danger" data-ride="' + esc(t.id) + '" type="button">Dzēst</button></td></tr>'; }).join('');
+      $('detail').innerHTML = '<div class="row" style="justify-content:space-between"><h2 style="margin:0">' + esc(u.name) + '</h2><span class="note">' + esc(u.email) + '</span></div>' +
+        '<div class="row" style="margin:10px 0">' + '<button class="danger" id="delAll" type="button"' + (r.rides.length ? '' : ' disabled') + '>Dzēst visus braucienus (' + r.rides.length + ')</button>' + (u.admin ? '<span class="note">Administratoru dzēst nevar.</span>' : '<button class="danger" id="delUser" type="button">Dzēst lietotāju un visus datus</button>') + '</div>' +
+        '<h3 style="font-size:15px;margin:14px 0 4px">Auto (' + r.cars.length + ')</h3><table><tbody>' + (cars || '<tr><td class="note">Nav auto.</td></tr>') + '</tbody></table>' +
+        '<h3 style="font-size:15px;margin:14px 0 4px">Braucieni (' + r.rides.length + ')</h3><div class="scroll" style="max-height:320px"><table><tbody>' + (rides || '<tr><td class="note">Nav braucienu.</td></tr>') + '</tbody></table></div>';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ride]'), function (b) { b.onclick = function () { if (!confirm('Dzēst šo braucienu?')) return; call({ action: 'delete_ride', trip_id: b.dataset.ride }).then(function () { toast('Brauciens dzēsts'); refresh(); }).catch(err); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-car]'), function (b) { b.onclick = function () { if (!confirm('Dzēst šo auto?')) return; call({ action: 'delete_car', car_id: b.dataset.car }).then(function () { toast('Auto dzēsts'); refresh(); }).catch(err); }; });
+      var da = $('delAll'); if (da) da.onclick = function () { if (!confirm('Dzēst VISUS ' + r.rides.length + ' lietotāja ' + u.name + ' braucienus?')) return; call({ action: 'delete_rides', driver_id: u.driver_id }).then(function (x) { toast('Dzēsti ' + x.deleted + ' braucieni'); refresh(); }).catch(err); };
+      var du = $('delUser'); if (du) du.onclick = function () { if (prompt('Lai dzēstu lietotāju ' + u.name + ' un VISUS viņa datus, ieraksti DZĒST') !== 'DZĒST') return; call({ action: 'delete_user', driver_id: u.driver_id }).then(function () { toast('Lietotājs dzēsts'); cur = null; $('detail').innerHTML = '<h2>Izvēlies lietotāju</h2>'; load(); }).catch(err); };
+    }).catch(err);
+  }
+  function refresh() { load().then(function () { if (cur) open(cur); }); }
+  function err(e) { if (e.message !== 'login') toast('Kļūda: ' + e.message); }
+  $('q').oninput = function () { clearTimeout(timer); timer = setTimeout(load, 250); };
+  $('reload').onclick = refresh;
+
+  // only administrators may stay here (the server checks again on every call)
+  if (!Auth.user()) { location.replace('login.html'); return; }
+  call({ action: 'me' }).then(function (m) { if (!m.admin) { location.replace('./'); return; } $('who').textContent = m.name || Auth.user().email; load(); }).catch(function () { location.replace('login.html'); });
+})();
+</script>
+</body>
+</html>

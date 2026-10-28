@@ -291,7 +291,9 @@
   function more() {
     const a = A(), li = (ic, tx, extra) => `<div class="lrow" style="cursor:default"><span class="red">${I(ic)}</span><span class="t"><b style="font-weight:500">${tx}</b></span>${extra || ''}</div>`;
     const sw = (k) => `<button class="sw ${st[k] ? 'on' : ''}" data-p="sw:${k}" aria-label="toggle"></button>`;
-    return `<h1 style="margin-bottom:2px">${a.lang() === 'lv' ? 'Demo lietotājs' : 'Demo user'}</h1><div class="red" style="font-size:16px">${a.lang() === 'lv' ? 'Apskatīt personīgo informāciju' : 'View personal information'}</div>
+    const me = window.Auth && Auth.user(), who = me ? (me.name || me.email) : (a.lang() === 'lv' ? 'Demo lietotājs' : 'Demo user');
+    return `<h1 style="margin-bottom:2px">${who.replace(/[<>&"]/g, '')}</h1><div class="red" style="font-size:16px">${me ? me.email : (a.lang() === 'lv' ? 'Apskatīt personīgo informāciju' : 'View personal information')}</div>
+    ${me ? `<button class="pbtn out" data-p="logout" style="margin-top:12px">${a.lang() === 'lv' ? 'Iziet no konta' : 'Log out'}</button>` : ''}
     <div class="sec">${P('svc')}</div>${li('hist', P('s_car'))}${li('hist', P('s_ins'))}${li('cart', P('s_buy'))}
     <div class="sec">${P('drive_set')} <span class="badge2">${P('new')}</span></div>${li('car', P('auto_detect'), sw('auto'))}${li('shield', P('share_ins'), sw('share'))}${li('lock', P('on_device'))}${li('trash', P('del_data'))}
     <div class="sec">${P('set')}</div>${li('bell', P('notif'), '<button class="sw"></button>')}${li('globe', P('lang') + ': ' + (a.lang() === 'lv' ? 'LV' : 'EN'), `<button class="pbtn sm out" data-p="lang">${a.lang() === 'lv' ? 'EN' : 'LV'}</button>`)}
@@ -334,6 +336,7 @@
     const el = e.target.closest('[data-p]'); if (!el) return; const [act, arg] = el.dataset.p.split(':'), a = A();
     if (act === 'stop') return; e.stopPropagation();
     if (act === 'tab') { st.tab = arg; st.trip = null; st.kpi = null; st.car = null; }
+    else if (act === 'logout') { if (window.Auth) Auth.logout(); location.href = 'login.html'; return; }
     else if (act === 'kpi') { st.kpi = arg; st._keep = true; }
     else if (act === 'trip') { st.trip = arg; st.ev = null; }
     else if (act === 'ev') { st.ev = +arg; st._keep = true; }
