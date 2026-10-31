@@ -1,28 +1,30 @@
-# OCTA Driver Score — hackathon prototype
+Assetto Corsa Telemetry & Driving Analytics
+A real-time telemetry analysis system that captures driving data, detects dangerous driving events (harsh braking, acceleration, turning, weaving, and speeding), calculates driver safety scores, and synchronizes data directly with a Supabase database.
 
-Concept add-on for an OCTA (motor third-party liability) insurance app: a **driver score** (the person) and a **car score** (what OCTA is priced on), tracked passively in the background, explained to the driver and turned into an illustrative OCTA discount. Built for the OCTA Tech Challenge (28 Oct 2026). **Synthetic demo data** — not an official LTAB/insurer product, no LTAB assets.
+Overview
+The core engine (driving_events.py & live.py) processes telemetry streams on the fly. It monitors vehicle dynamics and flags risky behaviors to evaluate driver performance in real time.
 
-Live: https://rderics.id.lv/octa/ (moving to its own repo/subdomain).
+Frontend & Real-World Integration
+The Widget Interface: The frontend acts as a live companion widget for the primary OCTA platform. While driving, it provides the user with instant driving tips and displays their most recent driving errors/violations in real time.
 
-## Run
-Static, no build, no dependencies: open `index.html`, or `py -3 -m http.server` and visit http://localhost:8000.
-```
-node tools/test.js    # engine sanity tests
-node tools/gen.js     # regenerate data.js (synthetic drivers, cars, trips, Assetto Corsa-format sessions)
-```
+Real-World Scope: In a real-world deployment, all these telemetry metrics, motion dynamics, and event tracking will be computed using a smartphone’s built-in gyroscope and accelerometer.
 
-## Layout
-| Path | What |
-|---|---|
-| `engine.js` | Scoring engine (browser + Node): samples → events → KPIs → score ± uncertainty → advice → illustrative premium. **All thresholds/weights are our assumptions** in `P` at the top. |
-| `phone.js`, `phone.css` | The in-app mock-up (Mani auto · Braukšana · CSNg · Vairāk), car/driver screens, trip route map + timeline, onboarding. |
-| `app.js`, `i18n.js`, `style.css` | Presenter pages (insurer view, hours vs years, Assetto Corsa, how it works), LV/EN, demo panel. |
-| `data.js` | Generated synthetic data (do not edit by hand) — also the offline fallback. |
-| `db.js` | Loads the same demo data from the Supabase database (public key, read-only) and swaps it in; see `docs/DATABASE.md`. |
-| `tools/ac_logger.py` | Records a real Assetto Corsa session to JSON (untested against the live game). |
-| `docs/ARCHITECTURE.md` | Backend + real-app design and the thin slice for the hackathon. |
+Features
+Real-Time Telemetry Processing: Hooks into game physics (Assetto Corsa) or custom telemetry sources.
 
-## Rules of the road
-- **Bump the `?v=` stamp in `index.html`** whenever you change an asset (Cloudflare caches static files 4 h).
-- Never commit personal data, real plates/photos, or organiser materials.
-- Keep the honesty notes: synthetic data, illustrative prices, schematic (dead-reckoned) route, no GPS stored.
+Event Detection: Automatically detects harsh braking, acceleration, cornering, loss of control, and speeding.
+
+Scoring System: Computes a normalized driver rating (0–100 scale with letter grades).
+
+Supabase Integration: Automatically logs completed trips and detected violations directly to Supabase (--upload).
+
+Quick Start
+Install dependencies:
+
+Bash
+pip install -r requirements.txt
+pip install supabase
+Run live analysis with Assetto Corsa:
+
+Bash
+python live.py ac --zones "0-1500:60,1500-:90" --upload
