@@ -14,10 +14,10 @@ Real-Time Telemetry Processing: Hooks into game physics (Assetto Corsa) or custo
 
 ## **Event Detection:** Automatically detects harsh braking, acceleration, cornering, loss of control, and speeding.
 
-##**Scoring System:** Computes a normalized driver rating (0–100 scale with letter grades).
+## **Scoring System:** Computes a normalized driver rating (0–100 scale with letter grades).
 
 
-### SECOND PLACE WINNER ON THE OCTA HACKATON 2026
+# SECOND PLACE WINNER ON THE OCTA HACKATON 2026
 Supabase Integration:**Automatically logs completed trips and detected violations directly to Supabase (--upload).
 
 Quick Start
